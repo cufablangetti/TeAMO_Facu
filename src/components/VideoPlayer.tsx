@@ -60,7 +60,7 @@ const VideoThumbnailPlayer: React.FC<VideoThumbnailPlayerProps> = ({
 const VideoPlayerWrapper: React.FC = () => {
   return (
     <VideoThumbnailPlayer 
-      driveVideoUrl="https://drive.google.com/file/d/1qf0AC9epwjYmy5XZtdun1INVMvWzYCor/view?usp=sharing"
+      driveVideoUrl="https://drive.google.com/file/d/1CAxfVeAOAqauAVsQGRmBl5YLP-If0H-Q/view?usp=sharing"
       title="Nuestro video especial" 
     />
   );
