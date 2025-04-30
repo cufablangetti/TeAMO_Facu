@@ -74,7 +74,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
           className="bg-pink-500 hover:bg-pink-600 text-white py-3 px-6 rounded-full flex items-center transition-all duration-300 transform hover:scale-105 mb-6"
           aria-label="Nosotros"
         >
-          <span className="mr-2">Continuar</span>
+          <span className="mr-2">Nosotros</span>
           <ChevronRight size={20} />
         </button>
         
