@@ -36,7 +36,7 @@ const RomanticMessage: React.FC = () => {
       </div>
       
       <div className="message-content text-center">
-        <h3 className="text-xl font-bold text-pink-800 mb-3">Mi Amor Eterno</h3>
+        <h3 className="text-xl font-bold text-pink-800 mb-3">5 de enero de 2024</h3>
         
         <p className="text-gray-700 mb-4">
           Cada día a tu lado es un regalo. Tu sonrisa ilumina mi mundo y tu amor me da fuerzas para enfrentar cualquier desafío.

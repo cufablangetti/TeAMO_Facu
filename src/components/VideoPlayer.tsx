@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Play } from 'lucide-react';
-import thumbnailImage from '../assets/images/c5.jpg'; // Importación directa
+import thumbnailImage from '../assets/images/c20.jpg'; // Importación directa
 
 interface VideoThumbnailPlayerProps {
   driveVideoUrl: string;
