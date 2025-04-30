@@ -32,7 +32,7 @@ const Screen2: React.FC = () => {
   return (
     <div className="screen-2 min-h-screen bg-gradient-to-b from-pink-100 to-red-100">
       <header className="py-6 bg-pink-500 text-white text-center">
-        <h1 className="text-3xl font-bold">Nuestro Amor</h1>
+        <h1 className="text-3xl font-bold">Facu y Coti</h1>
       </header>
 
       <section 
