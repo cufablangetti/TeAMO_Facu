@@ -51,7 +51,7 @@ const VerticalPhotoCarousel: React.FC = () => {
     if (isAutoPlaying && shuffledPhotos.length > 0) {
       interval = window.setInterval(() => {
         setCurrentIndex(prevIndex => (prevIndex + 1) % shuffledPhotos.length);
-      }, 5000); // Cambia cada 5 segundos
+      }, 1500); // Cambia cada 1.5 segundos
     }
     
     return () => {
