@@ -82,48 +82,48 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
         onMouseEnter={() => setIsHoveringCounter(true)}
         onMouseLeave={() => setIsHoveringCounter(false)}
       >
-        <div className={`bg-pink-600 bg-opacity-90 text-white rounded-r-xl shadow-2xl p-4 transition-all duration-500 ${
-          isHoveringCounter ? 'w-48' : 'w-20'
+        <div className={`bg-pink-600 bg-opacity-90 text-white rounded-r-xl shadow-2xl p-2 transition-all duration-500 ${
+          isHoveringCounter ? 'w-40' : 'w-16'
         }`}>
-          <h2 className={`text-center font-bold mb-3 transition-opacity duration-200 ${
+          <h2 className={`text-center font-bold mb-2 transition-opacity duration-200 ${
             isHoveringCounter ? 'opacity-100' : 'opacity-0'
           }`}>Viaje a Corea</h2>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
                 isHoveringCounter ? 'mr-2' : 'mx-auto'
               }`}>
-                <div className="text-2xl font-bold">{timeRemaining.days}</div>
+                <div className="text-xl font-bold">{timeRemaining.days}</div>
               </div>
-              {isHoveringCounter && <span className="text-sm">Días</span>}
+              {isHoveringCounter && <span className="text-xs">Días</span>}
             </div>
 
             <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
                 isHoveringCounter ? 'mr-2' : 'mx-auto'
               }`}>
-                <div className="text-2xl font-bold">{timeRemaining.hours.toString().padStart(2, '0')}</div>
+                <div className="text-xl font-bold">{timeRemaining.hours.toString().padStart(2, '0')}</div>
               </div>
-              {isHoveringCounter && <span className="text-sm">Horas</span>}
+              {isHoveringCounter && <span className="text-xs">Horas</span>}
             </div>
 
             <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
                 isHoveringCounter ? 'mr-2' : 'mx-auto'
               }`}>
-                <div className="text-2xl font-bold">{timeRemaining.minutes.toString().padStart(2, '0')}</div>
+                <div className="text-xl font-bold">{timeRemaining.minutes.toString().padStart(2, '0')}</div>
               </div>
-              {isHoveringCounter && <span className="text-sm">Minutos</span>}
+              {isHoveringCounter && <span className="text-xs">Minutos</span>}
             </div>
 
             <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
                 isHoveringCounter ? 'mr-2' : 'mx-auto'
               }`}>
-                <div className="text-2xl font-bold">{timeRemaining.seconds.toString().padStart(2, '0')}</div>
+                <div className="text-xl font-bold">{timeRemaining.seconds.toString().padStart(2, '0')}</div>
               </div>
-              {isHoveringCounter && <span className="text-sm">Segundos</span>}
+              {isHoveringCounter && <span className="text-xs">Segundos</span>}
             </div>
           </div>
         </div>
