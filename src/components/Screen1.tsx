@@ -20,7 +20,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
   const [isHoveringCounter, setIsHoveringCounter] = useState(false);
 
   // Fecha de viaje a Corea (15 de agosto 2024)
-  const targetDate = new Date(2025, 8, 1).getTime();
+  const targetDate = new Date(2024, 7, 15).getTime();
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -74,9 +74,9 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
 
   return (
     <div className="screen-1 relative h-screen w-full overflow-hidden">
-      {/* Contador regresivo vertical interactivo */}
-      <div 
-        className={`absolute left-4 top-1/2 transform -translate-y-1/2 z-20 transition-all duration-300 ${
+      {/* Contador regresivo vertical interactivo - Posicionado en la esquina superior izquierda */}
+      <div
+        className={`absolute left-4 top-4 transform z-20 transition-all duration-300 ${
           isHoveringCounter ? 'translate-x-0' : '-translate-x-3/4 hover:translate-x-0'
         }`}
         onMouseEnter={() => setIsHoveringCounter(true)}
@@ -88,7 +88,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
           <h2 className={`text-center font-bold mb-3 transition-opacity duration-200 ${
             isHoveringCounter ? 'opacity-100' : 'opacity-0'
           }`}>Viaje a Corea</h2>
-          
+
           <div className="space-y-3">
             <div className="flex items-center">
               <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
@@ -98,7 +98,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
               </div>
               {isHoveringCounter && <span className="text-sm">Días</span>}
             </div>
-            
+
             <div className="flex items-center">
               <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
                 isHoveringCounter ? 'mr-2' : 'mx-auto'
@@ -107,7 +107,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
               </div>
               {isHoveringCounter && <span className="text-sm">Horas</span>}
             </div>
-            
+
             <div className="flex items-center">
               <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
                 isHoveringCounter ? 'mr-2' : 'mx-auto'
@@ -116,7 +116,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
               </div>
               {isHoveringCounter && <span className="text-sm">Minutos</span>}
             </div>
-            
+
             <div className="flex items-center">
               <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
                 isHoveringCounter ? 'mr-2' : 'mx-auto'
@@ -156,8 +156,8 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
         <h1 className="text-white text-4xl md:text-6xl font-bold mb-8 animate-fade-in text-center">
           TE AMO COTI
         </h1>
-        
-        <button 
+
+        <button
           onClick={onNavigate}
           className="bg-pink-500 hover:bg-pink-600 text-white py-3 px-6 rounded-full flex items-center transition-all duration-300 transform hover:scale-105 mb-6"
           aria-label="Nosotros"
@@ -165,7 +165,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
           <span className="mr-2">Nosotros</span>
           <ChevronRight size={20} />
         </button>
-        
+
         <div className="text-white text-xl md:text-2xl mt-4 h-8 text-center">
           <TypewriterEffect text="Que tengas buen viaje, siempre con vos" />
         </div>
