@@ -20,7 +20,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
   const [isHoveringCounter, setIsHoveringCounter] = useState(false);
 
   // Fecha de viaje a Corea (15 de agosto 2024)
-  const targetDate = new Date(2024, 7, 15).getTime();
+  const targetDate = new Date(2025, 8, 1).getTime();
 
   useEffect(() => {
     const updateCountdown = () => {
