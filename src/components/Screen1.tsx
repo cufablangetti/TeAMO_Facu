@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import TypewriterEffect from './TypewriterEffect';
-import backgroundVideo from '../assets/videos/micoti.mp4'; // Asegúrate que esta ruta es correcta
+import backgroundVideo from '../assets/videos/micoti.mp4';
 
 interface Screen1Props {
   onNavigate: () => void;
@@ -11,6 +11,39 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+  const [isHoveringCounter, setIsHoveringCounter] = useState(false);
+
+  // Fecha de viaje a Corea (15 de agosto 2024)
+  const targetDate = new Date(2025, 8, 1).getTime();
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+        setTimeRemaining({ days, hours, minutes, seconds });
+      } else {
+        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -41,6 +74,61 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
 
   return (
     <div className="screen-1 relative h-screen w-full overflow-hidden">
+      {/* Contador regresivo vertical interactivo */}
+      <div 
+        className={`absolute left-4 top-1/2 transform -translate-y-1/2 z-20 transition-all duration-300 ${
+          isHoveringCounter ? 'translate-x-0' : '-translate-x-3/4 hover:translate-x-0'
+        }`}
+        onMouseEnter={() => setIsHoveringCounter(true)}
+        onMouseLeave={() => setIsHoveringCounter(false)}
+      >
+        <div className={`bg-pink-600 bg-opacity-90 text-white rounded-r-xl shadow-2xl p-4 transition-all duration-500 ${
+          isHoveringCounter ? 'w-48' : 'w-20'
+        }`}>
+          <h2 className={`text-center font-bold mb-3 transition-opacity duration-200 ${
+            isHoveringCounter ? 'opacity-100' : 'opacity-0'
+          }`}>Viaje a Corea</h2>
+          
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+                isHoveringCounter ? 'mr-2' : 'mx-auto'
+              }`}>
+                <div className="text-2xl font-bold">{timeRemaining.days}</div>
+              </div>
+              {isHoveringCounter && <span className="text-sm">Días</span>}
+            </div>
+            
+            <div className="flex items-center">
+              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+                isHoveringCounter ? 'mr-2' : 'mx-auto'
+              }`}>
+                <div className="text-2xl font-bold">{timeRemaining.hours.toString().padStart(2, '0')}</div>
+              </div>
+              {isHoveringCounter && <span className="text-sm">Horas</span>}
+            </div>
+            
+            <div className="flex items-center">
+              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+                isHoveringCounter ? 'mr-2' : 'mx-auto'
+              }`}>
+                <div className="text-2xl font-bold">{timeRemaining.minutes.toString().padStart(2, '0')}</div>
+              </div>
+              {isHoveringCounter && <span className="text-sm">Minutos</span>}
+            </div>
+            
+            <div className="flex items-center">
+              <div className={`bg-white bg-opacity-20 rounded-lg p-2 min-w-12 text-center transition-all duration-300 ${
+                isHoveringCounter ? 'mr-2' : 'mx-auto'
+              }`}>
+                <div className="text-2xl font-bold">{timeRemaining.seconds.toString().padStart(2, '0')}</div>
+              </div>
+              {isHoveringCounter && <span className="text-sm">Segundos</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Video Background with Fallback */}
       <div className="absolute inset-0 z-0">
         {!videoError ? (
