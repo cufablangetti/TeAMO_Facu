@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Heart } from 'lucide-react';
 import TypewriterEffect from './TypewriterEffect';
 import backgroundVideo from '../assets/videos/micoti.mp4';
 
@@ -18,8 +18,9 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
     seconds: 0
   });
   const [isHoveringCounter, setIsHoveringCounter] = useState(false);
+  const [showMessage, setShowMessage] = useState(false); // Estado para controlar la visibilidad del mensaje
 
-  // Fecha de viaje a Corea (15 de agosto 2024)
+  // Fecha de viaje a Corea (1 de septiembre 2025)
   const targetDate = new Date(2025, 8, 1).getTime();
 
   useEffect(() => {
@@ -128,6 +129,33 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+
+      {/* Botón en forma de corazón */}
+      <div className="absolute right-4 top-4 z-20 flex items-center">
+        <button
+          onClick={() => setShowMessage(!showMessage)}
+          className="bg-pink-500 hover:bg-pink-600 text-white p-3 rounded-full transition-all duration-300 transform hover:scale-110 relative"
+          aria-label="Mensaje del mes"
+        >
+          <Heart size={24} />
+          {/* Indicador de nuevo mensaje */}
+          <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            !
+          </div>
+        </button>
+        <span className="ml-2 text-white text-sm">Toca para ver el mensaje del mes</span>
+      </div>
+
+      {/* Mensaje del mes */}
+      {showMessage && (
+        <div className="absolute right-4 top-20 z-20 bg-pink-500 text-white p-4 rounded-lg shadow-lg">
+          Sé que a veces las cosas pueden parecer abrumadoras, pero no estás sola en este viaje. Hay mucha gente que te ama profundamente, que cree en ti y en todo lo que eres capaz de lograr. Yo, más que nadie, estoy aquí para ti en cada paso del camino. Te amo con todo mi ser y siempre estaré a tu lado, apoyándote, escuchándote y recordándote lo maravillosa que eres.
+
+Eres mi mayor inspiración, mi compañera en esta vida, y estoy convencido de que tienes un futuro brillante esperándote. La facultad es solo una etapa más en el camino hacia tus sueños, y sé que puedes con esto. Porque tú, mi amor, eres una luchadora, una mujer increíblemente fuerte, capaz de superar cualquier obstáculo que la vida te ponga delante.
+
+Así que nunca olvides que estoy aquí, siempre. Te amo más de lo que las palabras pueden expresar, y te admiro por todo lo que eres y por todo lo que haces. Sigue adelante, amor mío. Tienes el mundo en tus manos, y yo tengo la suerte de caminar a tu lado mientras conquistas cada meta. 💕
+        </div>
+      )}
 
       {/* Video Background with Fallback */}
       <div className="absolute inset-0 z-0">
