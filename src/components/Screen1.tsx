@@ -132,6 +132,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
 
       {/* Botón en forma de corazón */}
       <div className="absolute right-4 top-4 z-20 flex items-center">
+        <span className="mr-2 text-white text-sm">Toca para ver el mensaje del mes</span>
         <button
           onClick={() => setShowMessage(!showMessage)}
           className="bg-pink-500 hover:bg-pink-600 text-white p-3 rounded-full transition-all duration-300 transform hover:scale-110 relative"
@@ -143,12 +144,11 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
             !
           </div>
         </button>
-        <span className="ml-2 text-white text-sm">Toca para ver el mensaje del mes</span>
       </div>
 
       {/* Mensaje del mes */}
       {showMessage && (
-        <div className="absolute right-4 top-20 z-20 bg-pink-500 text-white p-4 rounded-lg shadow-lg">
+        <div className="absolute right-4 top-20 z-20 bg-pink-500 text-white p-4 rounded-lg shadow-lg w-64 h-64 overflow-y-auto">
           Sé que a veces las cosas pueden parecer abrumadoras, pero no estás sola en este viaje. Hay mucha gente que te ama profundamente, que cree en ti y en todo lo que eres capaz de lograr. Yo, más que nadie, estoy aquí para ti en cada paso del camino. Te amo con todo mi ser y siempre estaré a tu lado, apoyándote, escuchándote y recordándote lo maravillosa que eres.
 
 Eres mi mayor inspiración, mi compañera en esta vida, y estoy convencido de que tienes un futuro brillante esperándote. La facultad es solo una etapa más en el camino hacia tus sueños, y sé que puedes con esto. Porque tú, mi amor, eres una luchadora, una mujer increíblemente fuerte, capaz de superar cualquier obstáculo que la vida te ponga delante.
