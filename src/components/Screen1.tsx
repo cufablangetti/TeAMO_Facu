@@ -21,7 +21,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
   const [showMessage, setShowMessage] = useState(false); // Estado para controlar la visibilidad del mensaje
 
   // Fecha de viaje a Corea (1 de septiembre 2025)
-  const targetDate = new Date(2025, 8, 1).getTime();
+  const targetDate = new Date(2025, 7, 26).getTime();
 
   useEffect(() => {
     const updateCountdown = () => {
