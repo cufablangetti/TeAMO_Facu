@@ -1,32 +1,3 @@
-# name: Email Notification on Update
-
-# on:
-#   push:
-#     branches: [ main, master ]
-
-# jobs:
-#   notify:
-#     runs-on: ubuntu-latest
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v3
-      
-#     - name: Get commit info
-#       id: commit
-#       run: |
-#         echo "message=$(git log -1 --pretty=format:'%s')" >> $GITHUB_OUTPUT
-#         echo "date=$(date)" >> $GITHUB_OUTPUT
-
-#     - name: Send email notification
-#       run: |
-#         curl -X POST "https://formsubmit.co/ajax/facublangettit@gmail.com" \
-#         -H "Content-Type: application/json" \
-#         -d "{
-#           \"subject\": \"🚀 ¡Página Te Amo Facu actualizada!\",
-#           \"message\": \"¡Holaa Coti! 💕\n\nFacu acaba de actualizar la página especial para ti.\n\n📝 Último cambio: ${{ steps.commit.outputs.message }}\n🕐 Actualizado: ${{ steps.commit.outputs.date }}\n\n✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/\n\n💡 Tip: Refresca la página (F5 o Ctrl+F5) para ver los nuevos cambios.\n\nCon amor desde Argentina 🇦🇷 ❤️\",
-#           \"_template\": \"basic\"
-#         }"
-
 name: Simple Notification
 
 on:
@@ -81,7 +52,7 @@ jobs:
         -H "Content-Type: application/json" \
         -d '{
           "event": "page_updated",
-          "email_to": "constanzaguardia.2018@gmail.com",
+          "email_to": "facublangettit@gmail.com",
           "subject": "🚀 Página Te Amo Facu actualizada",
           "commit": "${{ steps.commit.outputs.message }}",
           "author": "${{ steps.commit.outputs.author }}",
