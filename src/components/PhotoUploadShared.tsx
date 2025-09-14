@@ -19,7 +19,7 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
   const UPLOAD_PASSWORD = 'coti2025';
   
   // API Key de ImgBB - REEMPLAZAR con tu API key real
-  const IMGBB_API_KEY = 'TU_API_KEY_AQUI';
+  const IMGBB_API_KEY = 'c76cf58613a488c3b14fee596a71898a';
   
   // JSONBin para compartir URLs entre dispositivos (gratis)
   const JSONBIN_API_KEY = '$2a$10$VmNP2S.huINnjHhoen6ISu9xr/.rs63Igu70nrX8/VY5WMoVoqh/m';
