@@ -1,4 +1,4 @@
-name: Simple Notification
+name: Simple Notification with Gmail
 
 on:
   push:
@@ -18,44 +18,56 @@ jobs:
         echo "author=$(git log -1 --pretty=format:'%an')" >> $GITHUB_OUTPUT
         echo "date=$(date '+%d/%m/%Y a las %H:%M')" >> $GITHUB_OUTPUT
 
-    - name: Print notification (for testing)
-      run: |
-        echo "🚀 PÁGINA ACTUALIZADA 🚀"
-        echo "📝 Cambio: ${{ steps.commit.outputs.message }}"
-        echo "👤 Por: ${{ steps.commit.outputs.author }}"
-        echo "🕐 Fecha: ${{ steps.commit.outputs.date }}"
-        echo "🔗 Link: https://te-amo-facu.vercel.app/"
-        echo ""
-        echo "✉️ Email que se enviaría:"
-        echo "Para: facublangettit@gmail.com"
-        echo "Asunto: 🚀 ¡Página Te Amo Facu actualizada!"
-        echo ""
-        echo "¡Hola Coti! 💕"
-        echo ""
-        echo "Facu acaba de actualizar la página especial para ti."
-        echo ""
-        echo "📝 Último cambio: ${{ steps.commit.outputs.message }}"
-        echo "👤 Actualizado por: ${{ steps.commit.outputs.author }}"
-        echo "🕐 Fecha: ${{ steps.commit.outputs.date }}"
-        echo ""
-        echo "✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/"
-        echo ""
-        echo "💡 Tip: Refresca la página (Ctrl+F5) para ver los nuevos cambios."
-        echo ""
-        echo "Con amor desde Argentina 🇦🇷 ❤️"
-
-    - name: Send simple HTTP request
-      run: |
-        # Esto al menos confirma que el workflow funciona
-        curl -s "https://httpbin.org/post" \
-        -X POST \
-        -H "Content-Type: application/json" \
-        -d '{
-          "event": "page_updated",
-          "email_to": "facublangettit@gmail.com",
-          "subject": "🚀 Página Te Amo Facu actualizada",
-          "commit": "${{ steps.commit.outputs.message }}",
-          "author": "${{ steps.commit.outputs.author }}",
-          "date": "${{ steps.commit.outputs.date }}",
-          "url": "https://te-amo-facu.vercel.app/"
-        }' || echo "Request failed but workflow continues"
+    - name: Send Email
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.GMAIL_USERNAME }}
+        password: ${{ secrets.GMAIL_APP_PASSWORD }}
+        subject: "🚀 ¡Página Te Amo Facu actualizada!"
+        to: facublangettit@gmail.com
+        from: ${{ secrets.GMAIL_USERNAME }}
+        secure: true
+        html_body: |
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #ff6b6b;">¡Hola Coti! 💕</h2>
+            <p style="font-size: 16px;">Facu acaba de actualizar la página especial para ti.</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #ff6b6b;">
+              <p style="margin: 5px 0;"><strong>📝 Último cambio:</strong> ${{ steps.commit.outputs.message }}</p>
+              <p style="margin: 5px 0;"><strong>👤 Actualizado por:</strong> ${{ steps.commit.outputs.author }}</p>
+              <p style="margin: 5px 0;"><strong>🕐 Fecha:</strong> ${{ steps.commit.outputs.date }}</p>
+            </div>
+            
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="https://te-amo-facu.vercel.app/" 
+                 style="background-color: #ff6b6b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                ✨ Ver los cambios aquí
+              </a>
+            </p>
+            
+            <p style="font-style: italic; color: #6c757d; font-size: 14px;">
+              💡 Tip: Refresca la página (Ctrl+F5) para ver los nuevos cambios.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            
+            <p style="color: #ff6b6b; text-align: center; font-size: 16px;">
+              Con amor desde Argentina 🇦🇷 ❤️
+            </p>
+          </div>
+        body: |
+          ¡Hola Coti! 💕
+          
+          Facu acaba de actualizar la página especial para ti.
+          
+          📝 Último cambio: ${{ steps.commit.outputs.message }}
+          👤 Actualizado por: ${{ steps.commit.outputs.author }}
+          🕐 Fecha: ${{ steps.commit.outputs.date }}
+          
+          ✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/
+          
+          💡 Tip: Refresca la página (Ctrl+F5) para ver los nuevos cambios.
+          
+          Con amor desde Argentina 🇦🇷 ❤️
