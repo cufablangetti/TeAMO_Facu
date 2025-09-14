@@ -149,7 +149,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
       {/* Mensaje del mes */}
       {showMessage && (
         <div className="absolute right-4 top-20 z-20 bg-pink-500 text-white p-4 rounded-lg shadow-lg w-64 h-64 overflow-y-auto">
-          Ahora ya estas en corea y yo estoy aca esperandote, como siempre digo siempre estoy pensando en vos, se que es mucho tiempo donde no nos vamos a ver, mucho tiempo dónde no vamos a tener contacto fisico, yo se que si pasamos esta etapa lo mas sano posible, estamos destinados para el uno al otro y seguir creciendo como pareja, ya que estamos aprendiendo a como superar cada obstaculo, estamos aprendiendo a saber respetar el otro estando lejos, amando desde lejos, es algo super dificil hoy en dia pero quiero que sepas que aqui estare esperandote, como ya sabes TE AMOOOO!!! 💕
+          TE EXTRAÑO: Ahora ya estas en corea y yo estoy aca esperandote, como siempre digo siempre estoy pensando en vos, se que es mucho tiempo donde no nos vamos a ver, mucho tiempo dónde no vamos a tener contacto fisico, yo se que si pasamos esta etapa lo mas sano posible, estamos destinados para el uno al otro y seguir creciendo como pareja, ya que estamos aprendiendo a como superar cada obstaculo, estamos aprendiendo a saber respetar el otro estando lejos, amando desde lejos, es algo super dificil hoy en dia pero quiero que sepas que aqui estare esperandote, como ya sabes TE AMOOOO!!! 💕
         </div>
       )}
 
