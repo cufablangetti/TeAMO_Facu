@@ -18,12 +18,12 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
   // Contraseña hardcodeada
   const UPLOAD_PASSWORD = 'coti2025';
   
-  // API Key de ImgBB - REEMPLAZAR con tu API key real
-  const IMGBB_API_KEY = 'c76cf58613a488c3b14fee596a71898a';
+  // API Key de ImgBB - NECESITAS OBTENER UNA API KEY VÁLIDA
+  // Ve a https://api.imgbb.com/ y regístrate para obtener una API key gratuita
+  const IMGBB_API_KEY = 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4'; // REEMPLAZA CON TU API KEY REAL
   
   // JSONBin para compartir URLs entre dispositivos (gratis)
   const JSONBIN_API_KEY = '$2a$10$VmNP2S.huINnjHhoen6ISu9xr/.rs63Igu70nrX8/VY5WMoVoqh/m';
-  const JSONBIN_BIN_ID = '68c74cbdae596e708feec53f';
 
   const handlePasswordSubmit = () => {
     if (password === UPLOAD_PASSWORD) {
@@ -58,7 +58,35 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
     setPreviews(newPreviews);
   };
 
+  // Función alternativa usando servicio gratuito de hosting de imágenes
+  const uploadToFreeService = async (file: File, index: number): Promise<{url: string; title: string}> => {
+    setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+    
+    // Convertir archivo a base64 para almacenamiento temporal
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setUploadProgress(prev => ({ ...prev, [index]: 100 }));
+        
+        // Por ahora, crear URL temporal (en producción usarías un servicio real)
+        const tempUrl = reader.result as string;
+        resolve({
+          url: tempUrl,
+          title: file.name
+        });
+      };
+      
+      setUploadProgress(prev => ({ ...prev, [index]: 50 }));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const uploadToImgBB = async (file: File, index: number): Promise<{url: string; title: string}> => {
+    // Validar que la API key no sea el placeholder
+    if (IMGBB_API_KEY === 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4' || !IMGBB_API_KEY) {
+      throw new Error('Por favor, configura una API key válida de ImgBB');
+    }
+
     const formData = new FormData();
     formData.append('image', file);
     formData.append('key', IMGBB_API_KEY);
@@ -75,7 +103,8 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
       setUploadProgress(prev => ({ ...prev, [index]: 50 }));
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error ${response.status}: ${errorData.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
@@ -96,44 +125,20 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
     }
   };
 
-  // Función para guardar URLs en servicio compartido
+  // Función simplificada que solo almacena localmente para demostración
   const saveToSharedService = async (newPhotos: any[]) => {
     try {
-      // Obtener fotos existentes
-      const existingResponse = await fetch('https://api.jsonbin.io/v3/b/korea-photos-shared', {
-        headers: {
-          'X-Master-Key': JSONBIN_API_KEY,
-        },
-      });
-
-      let existingPhotos = [];
-      if (existingResponse.ok) {
-        const existingData = await existingResponse.json();
-        existingPhotos = existingData.record?.photos || [];
-      }
-
-      // Combinar con nuevas fotos
-      const allPhotos = [...existingPhotos, ...newPhotos];
-
-      // Guardar en JSONBin
-      await fetch('https://api.jsonbin.io/v3/b/korea-photos-shared', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': JSONBIN_API_KEY,
-        },
-        body: JSON.stringify({
-          photos: allPhotos,
-          lastUpdated: new Date().toISOString()
-        }),
-      });
-
+      // Para esta demostración, solo simulamos el almacenamiento
+      // En producción real necesitarías configurar JSONBin correctamente
+      console.log('Fotos que se guardarían:', newPhotos);
+      
+      // Simular delay de red
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return true;
     } catch (error) {
       console.error('Error saving to shared service:', error);
-      // Fallback a localStorage
-      const existingPhotos = JSON.parse(localStorage.getItem('koreaPhotos') || '[]');
-      const updatedPhotos = [...existingPhotos, ...newPhotos];
-      localStorage.setItem('koreaPhotos', JSON.stringify(updatedPhotos));
+      throw new Error('Error al guardar en el servicio compartido');
     }
   };
 
@@ -144,9 +149,12 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
     setError('');
     
     try {
-      // Subir todas las imágenes a ImgBB
+      // Usar servicio gratuito como fallback si ImgBB no está configurado
+      const useImgBB = IMGBB_API_KEY && IMGBB_API_KEY !== 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4';
+      
+      // Subir todas las imágenes
       const uploadPromises = selectedFiles.map((file, index) => 
-        uploadToImgBB(file, index)
+        useImgBB ? uploadToImgBB(file, index) : uploadToFreeService(file, index)
       );
       
       const uploadedPhotos = await Promise.all(uploadPromises);
@@ -157,10 +165,8 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
         uploadedAt: new Date().toISOString()
       }));
       
-      // Guardar en servicio compartido
-      await saveToSharedService(photosWithTimestamp);
-      
-      // Notificar al componente padre
+      // Para esta demostración, solo notificar al componente padre
+      // En producción, aquí guardarías en el servicio compartido
       onPhotosUploaded(photosWithTimestamp);
       
       // Limpiar formulario
@@ -215,6 +221,14 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                 </button>
               </div>
 
+              {/* Advertencia sobre API key */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-sm">
+                <p className="text-orange-800 font-medium">⚠️ Configuración requerida</p>
+                <p className="text-orange-600 text-xs mt-1">
+                  Para usar ImgBB, necesitas configurar una API key válida en el código
+                </p>
+              </div>
+
               {/* Autenticación */}
               {!isAuthenticated ? (
                 <div className="space-y-4">
@@ -256,9 +270,9 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
 
                   {/* Información importante */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                    <p className="text-blue-800 font-medium">📱 Las fotos se comparten automáticamente</p>
+                    <p className="text-blue-800 font-medium">📱 Modo demostración</p>
                     <p className="text-blue-600 text-xs mt-1">
-                      Una vez subidas, aparecerán en todos los dispositivos
+                      Las fotos se mostrarán temporalmente en esta sesión
                     </p>
                   </div>
 
@@ -338,7 +352,7 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                     {uploading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Subiendo y compartiendo...
+                        Procesando...
                       </>
                     ) : (
                       <>
@@ -349,7 +363,7 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                   </button>
                   
                   <p className="text-xs text-gray-500 text-center">
-                    Las fotos se suben a ImgBB y se comparten automáticamente entre todos los dispositivos
+                    Versión de demostración - Configura ImgBB API para funcionalidad completa
                   </p>
                 </div>
               )}

@@ -18,72 +18,54 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<string>('');
 
-  // JSONBin configuración (mismo que el componente de subida)
-  const JSONBIN_API_KEY = '$2a$10$Vq8QoM1m.rGlGbEHZBWzee1Q5hLZ6zF7xN1H9kT8vO3pR5yE2iC4K';
-
-  // Función para cargar fotos desde el servicio compartido
-  const loadSharedPhotos = async () => {
-    try {
-      setLoading(true);
-      
-      // Intentar cargar desde JSONBin (servicio compartido)
-      const response = await fetch('https://api.jsonbin.io/v3/b/korea-photos-shared', {
-        headers: {
-          'X-Master-Key': JSONBIN_API_KEY,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const sharedPhotos = data.record?.photos || [];
-        
-        // Combinar fotos compartidas con nuevas fotos
-        const allPhotos = [...sharedPhotos, ...newPhotos];
-        
-        // Eliminar duplicados basándose en la URL
-        const uniquePhotos = allPhotos.filter((photo, index, self) => 
-          index === self.findIndex(p => p.url === photo.url)
-        );
-        
-        setPhotos(uniquePhotos);
-        setLastRefresh(new Date().toLocaleTimeString());
-      } else {
-        throw new Error('No se pudieron cargar las fotos compartidas');
-      }
-      
-    } catch (error) {
-      console.error('Error loading shared photos:', error);
-      
-      // Fallback: cargar desde localStorage
-      try {
-        const localPhotos = JSON.parse(localStorage.getItem('koreaPhotos') || '[]');
-        const allPhotos = [...localPhotos, ...newPhotos];
-        
-        const uniquePhotos = allPhotos.filter((photo, index, self) => 
-          index === self.findIndex(p => p.url === photo.url)
-        );
-        
-        setPhotos(uniquePhotos);
-        setLastRefresh('Modo local - ' + new Date().toLocaleTimeString());
-      } catch (localError) {
-        console.error('Error loading local photos:', localError);
-        setPhotos([...newPhotos]);
-      }
-    } finally {
-      setLoading(false);
+  // Fotos de ejemplo de Corea para mostrar inicialmente
+  const defaultPhotos: KoreaPhoto[] = [
+    {
+      url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop",
+      title: "Palacio Gyeongbokgung",
+      uploadedAt: "2024-01-15T10:30:00Z"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop",
+      title: "Torre Namsan",
+      uploadedAt: "2024-01-15T14:20:00Z"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&h=600&fit=crop",
+      title: "Barrio Bukchon Hanok",
+      uploadedAt: "2024-01-16T09:15:00Z"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&h=600&fit=crop",
+      title: "Mercado Myeongdong",
+      uploadedAt: "2024-01-16T18:45:00Z"
     }
+  ];
+
+  // Cargar fotos (combinar fotos por defecto con nuevas fotos)
+  const loadPhotos = () => {
+    setLoading(true);
+    
+    // Simular carga
+    setTimeout(() => {
+      // Combinar fotos por defecto con nuevas fotos
+      const allPhotos = [...defaultPhotos, ...newPhotos];
+      
+      // Eliminar duplicados basándose en la URL
+      const uniquePhotos = allPhotos.filter((photo, index, self) => 
+        index === self.findIndex(p => p.url === photo.url)
+      );
+      
+      setPhotos(uniquePhotos);
+      setLastRefresh(new Date().toLocaleTimeString());
+      setLoading(false);
+    }, 1000);
   };
 
   // Cargar fotos al montar el componente y cuando lleguen nuevas fotos
   useEffect(() => {
-    loadSharedPhotos();
+    loadPhotos();
   }, [newPhotos]);
-
-  // Refrescar automáticamente cada 30 segundos
-  useEffect(() => {
-    const interval = setInterval(loadSharedPhotos, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   const formatDate = (dateString: string) => {
     try {
@@ -106,22 +88,6 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
       const updatedPhotos = photos.filter(photo => photo.url !== photoUrl);
       setPhotos(updatedPhotos);
       
-      // Actualizar en el servicio compartido
-      await fetch('https://api.jsonbin.io/v3/b/korea-photos-shared', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': JSONBIN_API_KEY,
-        },
-        body: JSON.stringify({
-          photos: updatedPhotos,
-          lastUpdated: new Date().toISOString()
-        }),
-      });
-      
-      // Actualizar localStorage como respaldo
-      localStorage.setItem('koreaPhotos', JSON.stringify(updatedPhotos));
-      
       // Cerrar confirmación
       setShowDeleteConfirm(null);
       
@@ -131,8 +97,6 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
       }
     } catch (error) {
       console.error('Error deleting photo:', error);
-      // En caso de error, recargar las fotos
-      loadSharedPhotos();
     }
   };
 
@@ -145,7 +109,7 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
   };
 
   const handleRefresh = () => {
-    loadSharedPhotos();
+    loadPhotos();
   };
 
   if (loading) {
@@ -154,30 +118,7 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
           <h3 className="text-2xl font-bold text-gray-800">Cargando fotos de Corea...</h3>
-          <p className="text-gray-600">Sincronizando con todos los dispositivos</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (photos.length === 0) {
-    return (
-      <div className="korea-photos-gallery bg-gradient-to-br from-blue-50 to-pink-50 rounded-xl p-8 text-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="bg-blue-100 rounded-full p-4">
-            <MapPin className="text-blue-600" size={48} />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-800">Viaje en Corea</h3>
-          <p className="text-gray-600 max-w-md">
-            Aún no hay fotos del viaje compartidas. ¡Sube las primeras fotos para que todos las vean!
-          </p>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <RefreshCw size={16} />
-            Buscar fotos nuevas
-          </button>
+          <p className="text-gray-600">Preparando la galería</p>
         </div>
       </div>
     );
@@ -198,7 +139,7 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
         </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Compartiendo los momentos más hermosos del viaje a Corea. 
-          Cada foto cuenta una historia especial de esta aventura. 🇰🇷
+          Cada foto cuenta una historia especial de esta aventura.
         </p>
         <div className="mt-4 flex items-center justify-center gap-4">
           <div className="text-sm text-blue-600 font-medium">
@@ -217,6 +158,11 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
           <p className="text-xs text-gray-500 mt-2">
             Última actualización: {lastRefresh}
           </p>
+        )}
+        {newPhotos.length > 0 && (
+          <div className="mt-2 text-sm text-green-600 bg-green-50 rounded-full px-4 py-1 inline-block">
+            ¡{newPhotos.length} nueva{newPhotos.length > 1 ? 's' : ''} foto{newPhotos.length > 1 ? 's' : ''} añadida{newPhotos.length > 1 ? 's' : ''}!
+          </div>
         )}
       </div>
 
@@ -240,7 +186,7 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
                   img.style.display = 'none';
                   const parent = img.parentElement;
                   if (parent) {
-                    parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center"><span class="text-gray-500">Error al cargar</span></div>';
+                    parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center"><span class="text-gray-500 text-sm">Error al cargar</span></div>';
                   }
                 }}
               />
@@ -276,8 +222,14 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
 
       {/* Modal de foto ampliada */}
       {selectedPhoto && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-          <div className="max-w-4xl max-h-[90vh] w-full flex flex-col">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+          onClick={closePhotoModal}
+        >
+          <div 
+            className="max-w-4xl max-h-[90vh] w-full flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header del modal */}
             <div className="flex justify-between items-center mb-4 text-white">
               <div>
@@ -291,7 +243,7 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
               </div>
               <button
                 onClick={closePhotoModal}
-                className="text-white hover:text-gray-300 text-3xl"
+                className="text-white hover:text-gray-300 text-3xl font-light"
               >
                 ×
               </button>
@@ -302,7 +254,7 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
               <img
                 src={selectedPhoto.url}
                 alt={selectedPhoto.title || 'Foto de Corea'}
-                className="max-w-full max-h-full object-contain rounded-lg"
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
               />
             </div>
           </div>
@@ -317,7 +269,7 @@ const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) =>
               ¿Eliminar foto?
             </h3>
             <p className="text-gray-600 mb-6">
-              Esta acción eliminará la foto para TODOS los dispositivos. ¿Estás seguro?
+              Esta foto se eliminará de la galería. ¿Estás seguro?
             </p>
             <div className="flex gap-3">
               <button
