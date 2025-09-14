@@ -21,7 +21,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
   const [showMessage, setShowMessage] = useState(false); // Estado para controlar la visibilidad del mensaje
 
   // Fecha de viaje a Corea (1 de septiembre 2025)
-  const targetDate = new Date(2025, 7, 26).getTime();
+  const targetDate = new Date(2025, 12, 27).getTime();
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -88,7 +88,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
         }`}>
           <h2 className={`text-center font-bold mb-2 transition-opacity duration-200 ${
             isHoveringCounter ? 'opacity-100' : 'opacity-0'
-          }`}>Viaje a Corea</h2>
+          }`}>PARA VOLVERNOS A VER</h2>
 
           <div className="space-y-2">
             <div className="flex items-center">
@@ -149,11 +149,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
       {/* Mensaje del mes */}
       {showMessage && (
         <div className="absolute right-4 top-20 z-20 bg-pink-500 text-white p-4 rounded-lg shadow-lg w-64 h-64 overflow-y-auto">
-          Sé que a veces las cosas pueden parecer abrumadoras, pero no estás sola en este viaje. Hay mucha gente que te ama profundamente, que cree en ti y en todo lo que eres capaz de lograr. Yo, más que nadie, estoy aquí para ti en cada paso del camino. Te amo con todo mi ser y siempre estaré a tu lado, apoyándote, escuchándote y recordándote lo maravillosa que eres.
-
-Eres mi mayor inspiración, mi compañera en esta vida, y estoy convencido de que tienes un futuro brillante esperándote. La facultad es solo una etapa más en el camino hacia tus sueños, y sé que puedes con esto. Porque tú, mi amor, eres una luchadora, una mujer increíblemente fuerte, capaz de superar cualquier obstáculo que la vida te ponga delante.
-
-Así que nunca olvides que estoy aquí, siempre. Te amo más de lo que las palabras pueden expresar, y te admiro por todo lo que eres y por todo lo que haces. Sigue adelante, amor mío. Tienes el mundo en tus manos, y yo tengo la suerte de caminar a tu lado mientras conquistas cada meta. 💕
+          Ahora ya estas en corea y yo estoy aca esperandote, como siempre digo siempre estoy pensando en vos, se que es mucho tiempo donde no nos vamos a ver, mucho tiempo dónde no vamos a tener contacto fisico, yo se que si pasamos esta etapa lo mas sano posible, estamos destinados para el uno al otro y seguir creciendo como pareja, ya que estamos aprendiendo a como superar cada obstaculo, estamos aprendiendo a saber respetar el otro estando lejos, amando desde lejos, es algo super dificil hoy en dia pero quiero que sepas que aqui estare esperandote, como ya sabes TE AMOOOO!!! 💕
         </div>
       )}
 
