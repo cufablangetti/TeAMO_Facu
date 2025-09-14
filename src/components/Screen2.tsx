@@ -64,6 +64,6 @@ const Screen2: React.FC = () => {
       </footer>
     </div>
   );
-};
+};//...
 
 export default Screen2;
