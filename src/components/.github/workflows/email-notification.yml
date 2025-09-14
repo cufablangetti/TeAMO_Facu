@@ -1,8 +1,37 @@
-name: Email Notification on Update
+# name: Email Notification on Update
+
+# on:
+#   push:
+#     branches: [ main, master ]
+
+# jobs:
+#   notify:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v3
+      
+#     - name: Get commit info
+#       id: commit
+#       run: |
+#         echo "message=$(git log -1 --pretty=format:'%s')" >> $GITHUB_OUTPUT
+#         echo "date=$(date)" >> $GITHUB_OUTPUT
+
+#     - name: Send email notification
+#       run: |
+#         curl -X POST "https://formsubmit.co/ajax/facublangettit@gmail.com" \
+#         -H "Content-Type: application/json" \
+#         -d "{
+#           \"subject\": \"🚀 ¡Página Te Amo Facu actualizada!\",
+#           \"message\": \"¡Holaa Coti! 💕\n\nFacu acaba de actualizar la página especial para ti.\n\n📝 Último cambio: ${{ steps.commit.outputs.message }}\n🕐 Actualizado: ${{ steps.commit.outputs.date }}\n\n✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/\n\n💡 Tip: Refresca la página (F5 o Ctrl+F5) para ver los nuevos cambios.\n\nCon amor desde Argentina 🇦🇷 ❤️\",
+#           \"_template\": \"basic\"
+#         }"
+
+name: Simple Notification
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   notify:
@@ -15,14 +44,47 @@ jobs:
       id: commit
       run: |
         echo "message=$(git log -1 --pretty=format:'%s')" >> $GITHUB_OUTPUT
-        echo "date=$(date)" >> $GITHUB_OUTPUT
+        echo "author=$(git log -1 --pretty=format:'%an')" >> $GITHUB_OUTPUT
+        echo "date=$(date '+%d/%m/%Y a las %H:%M')" >> $GITHUB_OUTPUT
 
-    - name: Send email notification
+    - name: Print notification (for testing)
       run: |
-        curl -X POST "https://formsubmit.co/ajax/facublangettit@gmail.com" \
+        echo "🚀 PÁGINA ACTUALIZADA 🚀"
+        echo "📝 Cambio: ${{ steps.commit.outputs.message }}"
+        echo "👤 Por: ${{ steps.commit.outputs.author }}"
+        echo "🕐 Fecha: ${{ steps.commit.outputs.date }}"
+        echo "🔗 Link: https://te-amo-facu.vercel.app/"
+        echo ""
+        echo "✉️ Email que se enviaría:"
+        echo "Para: facublangettit@gmail.com"
+        echo "Asunto: 🚀 ¡Página Te Amo Facu actualizada!"
+        echo ""
+        echo "¡Hola Coti! 💕"
+        echo ""
+        echo "Facu acaba de actualizar la página especial para ti."
+        echo ""
+        echo "📝 Último cambio: ${{ steps.commit.outputs.message }}"
+        echo "👤 Actualizado por: ${{ steps.commit.outputs.author }}"
+        echo "🕐 Fecha: ${{ steps.commit.outputs.date }}"
+        echo ""
+        echo "✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/"
+        echo ""
+        echo "💡 Tip: Refresca la página (Ctrl+F5) para ver los nuevos cambios."
+        echo ""
+        echo "Con amor desde Argentina 🇦🇷 ❤️"
+
+    - name: Send simple HTTP request
+      run: |
+        # Esto al menos confirma que el workflow funciona
+        curl -s "https://httpbin.org/post" \
+        -X POST \
         -H "Content-Type: application/json" \
-        -d "{
-          \"subject\": \"🚀 ¡Página Te Amo Facu actualizada!\",
-          \"message\": \"¡Holaa Coti! 💕\n\nFacu acaba de actualizar la página especial para ti.\n\n📝 Último cambio: ${{ steps.commit.outputs.message }}\n🕐 Actualizado: ${{ steps.commit.outputs.date }}\n\n✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/\n\n💡 Tip: Refresca la página (F5 o Ctrl+F5) para ver los nuevos cambios.\n\nCon amor desde Argentina 🇦🇷 ❤️\",
-          \"_template\": \"basic\"
-        }"
+        -d '{
+          "event": "page_updated",
+          "email_to": "constanzaguardia.2018@gmail.com",
+          "subject": "🚀 Página Te Amo Facu actualizada",
+          "commit": "${{ steps.commit.outputs.message }}",
+          "author": "${{ steps.commit.outputs.author }}",
+          "date": "${{ steps.commit.outputs.date }}",
+          "url": "https://te-amo-facu.vercel.app/"
+        }' || echo "Request failed but workflow continues"
