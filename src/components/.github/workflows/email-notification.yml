@@ -23,6 +23,6 @@ jobs:
         -H "Content-Type: application/json" \
         -d "{
           \"subject\": \"🚀 ¡Página Te Amo Facu actualizada!\",
-          \"message\": \"¡Hola Coti! 💕\n\nFacu acaba de actualizar la página especial para ti.\n\n📝 Último cambio: ${{ steps.commit.outputs.message }}\n🕐 Actualizado: ${{ steps.commit.outputs.date }}\n\n✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/\n\n💡 Tip: Refresca la página (F5 o Ctrl+F5) para ver los nuevos cambios.\n\nCon amor desde Argentina 🇦🇷 ❤️\",
+          \"message\": \"¡Holaa Coti! 💕\n\nFacu acaba de actualizar la página especial para ti.\n\n📝 Último cambio: ${{ steps.commit.outputs.message }}\n🕐 Actualizado: ${{ steps.commit.outputs.date }}\n\n✨ Ve los cambios aquí: https://te-amo-facu.vercel.app/\n\n💡 Tip: Refresca la página (F5 o Ctrl+F5) para ver los nuevos cambios.\n\nCon amor desde Argentina 🇦🇷 ❤️\",
           \"_template\": \"basic\"
         }"
