@@ -21,6 +21,6 @@ const TypewriterEffect: React.FC<TypewriterEffectProps> = ({ text, delay = 100 }
   }, [currentIndex, delay, text]);
 
   return <span className="typewriter">{displayText}<span className="cursor">|</span></span>;
-};
+}; //......
 
 export default TypewriterEffect;
