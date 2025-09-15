@@ -1,295 +1,410 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Calendar, Heart, Trash2, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Upload, Lock, X, Check, AlertCircle } from 'lucide-react';
 
-interface KoreaPhoto {
-  url: string;
-  title: string;
-  uploadedAt: string;
+interface PhotoUploadProps {
+  onPhotosUploaded: (photos: { url: string; title: string; uploadedAt: string }[]) => void;
 }
 
-interface SharedKoreaGalleryProps {
-  newPhotos: KoreaPhoto[];
-}
+const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => {
+  const [showModal, setShowModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{[key: number]: number}>({});
 
-const SharedKoreaGallery: React.FC<SharedKoreaGalleryProps> = ({ newPhotos }) => {
-  const [photos, setPhotos] = useState<KoreaPhoto[]>([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<KoreaPhoto | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<string>('');
+  // Contraseña hardcodeada
+  const UPLOAD_PASSWORD = 'coti2025';
+  
+  // API Key de ImgBB - NECESITAS OBTENER UNA API KEY VÁLIDA
+  // Ve a https://api.imgbb.com/ y regístrate para obtener una API key gratuita
+  const IMGBB_API_KEY = 'c76cf58613a488c3b14fee596a71898a'; // REEMPLAZA CON TU API KEY REAL
+  
+  // JSONBin para compartir URLs entre dispositivos (gratis)
+  const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
 
-  // Fotos de ejemplo de Corea para mostrar inicialmente
-  const defaultPhotos: KoreaPhoto[] = [
-    {
-      url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop",
-      title: "Palacio Gyeongbokgung",
-      uploadedAt: "2024-01-15T10:30:00Z"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop",
-      title: "Torre Namsan",
-      uploadedAt: "2024-01-15T14:20:00Z"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&h=600&fit=crop",
-      title: "Barrio Bukchon Hanok",
-      uploadedAt: "2024-01-16T09:15:00Z"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&h=600&fit=crop",
-      title: "Mercado Myeongdong",
-      uploadedAt: "2024-01-16T18:45:00Z"
+  const handlePasswordSubmit = () => {
+    if (password === UPLOAD_PASSWORD) {
+      setIsAuthenticated(true);
+      setError('');
+    } else {
+      setError('Contraseña incorrecta');
+      setPassword('');
     }
-  ];
+  };
 
-  // Cargar fotos (combinar fotos por defecto con nuevas fotos)
-  const loadPhotos = () => {
-    setLoading(true);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
     
-    // Simular carga
-    setTimeout(() => {
-      // Combinar fotos por defecto con nuevas fotos
-      const allPhotos = [...defaultPhotos, ...newPhotos];
-      
-      // Eliminar duplicados basándose en la URL
-      const uniquePhotos = allPhotos.filter((photo, index, self) => 
-        index === self.findIndex(p => p.url === photo.url)
-      );
-      
-      setPhotos(uniquePhotos);
-      setLastRefresh(new Date().toLocaleTimeString());
-      setLoading(false);
-    }, 1000);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const limitedFiles = imageFiles.slice(0, 3);
+    
+    setSelectedFiles(limitedFiles);
+    
+    const newPreviews = limitedFiles.map(file => URL.createObjectURL(file));
+    setPreviews(newPreviews);
+    setUploadProgress({});
   };
 
-  // Cargar fotos al montar el componente y cuando lleguen nuevas fotos
-  useEffect(() => {
-    loadPhotos();
-  }, [newPhotos]);
+  const removeFile = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    const newPreviews = previews.filter((_, i) => i !== index);
+    
+    URL.revokeObjectURL(previews[index]);
+    
+    setSelectedFiles(newFiles);
+    setPreviews(newPreviews);
+  };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('es-ES', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Fecha no disponible';
+  // Función alternativa usando servicio gratuito de hosting de imágenes
+  const uploadToFreeService = async (file: File, index: number): Promise<{url: string; title: string}> => {
+    setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+    
+    // Convertir archivo a base64 para almacenamiento temporal
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setUploadProgress(prev => ({ ...prev, [index]: 100 }));
+        
+        // Por ahora, crear URL temporal (en producción usarías un servicio real)
+        const tempUrl = reader.result as string;
+        resolve({
+          url: tempUrl,
+          title: file.name
+        });
+      };
+      
+      setUploadProgress(prev => ({ ...prev, [index]: 50 }));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const uploadToImgBB = async (file: File, index: number): Promise<{url: string; title: string}> => {
+    // Validar que la API key no sea el placeholder
+    if (IMGBB_API_KEY === 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4' || !IMGBB_API_KEY) {
+      throw new Error('Por favor, configura una API key válida de ImgBB');
     }
-  };
 
-  const handleDelete = async (photoUrl: string) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('key', IMGBB_API_KEY);
+    formData.append('name', `corea-viaje-${Date.now()}-${index}`);
+
     try {
-      // Filtrar la foto del estado local
-      const updatedPhotos = photos.filter(photo => photo.url !== photoUrl);
-      setPhotos(updatedPhotos);
+      setUploadProgress(prev => ({ ...prev, [index]: 0 }));
       
-      // Cerrar confirmación
-      setShowDeleteConfirm(null);
+      const response = await fetch('https://api.imgbb.com/1/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      setUploadProgress(prev => ({ ...prev, [index]: 50 }));
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error ${response.status}: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
       
-      // Cerrar modal si la foto eliminada estaba seleccionada
-      if (selectedPhoto?.url === photoUrl) {
-        setSelectedPhoto(null);
+      setUploadProgress(prev => ({ ...prev, [index]: 100 }));
+
+      if (data.success) {
+        return {
+          url: data.data.url,
+          title: data.data.title || file.name
+        };
+      } else {
+        throw new Error(data.error?.message || 'Error al subir imagen');
       }
     } catch (error) {
-      console.error('Error deleting photo:', error);
+      setUploadProgress(prev => ({ ...prev, [index]: -1 }));
+      throw error;
     }
   };
 
-  const openPhotoModal = (photo: KoreaPhoto) => {
-    setSelectedPhoto(photo);
+  // Función real para guardar en JSONBin (cuando esté configurado)
+  const saveToSharedService = async (newPhotos: any[]) => {
+    // Solo intentar guardar si JSONBin está configurado
+    if (JSONBIN_BIN_ID === 'NECESITAS_CREAR_UN_BIN_PRIMERO') {
+      console.log('JSONBin no configurado, saltando guardado compartido');
+      return true;
+    }
+    
+    try {
+      // Obtener fotos existentes
+      const existingResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        headers: {
+          'X-Master-Key': JSONBIN_API_KEY,
+        },
+      });
+
+      let existingPhotos = [];
+      if (existingResponse.ok) {
+        const existingData = await existingResponse.json();
+        existingPhotos = existingData.record?.photos || [];
+      }
+
+      // Combinar con nuevas fotos
+      const allPhotos = [...existingPhotos, ...newPhotos];
+
+      // Guardar en JSONBin
+      const saveResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_API_KEY,
+        },
+        body: JSON.stringify({
+          photos: allPhotos,
+          lastUpdated: new Date().toISOString()
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error(`Error ${saveResponse.status}: ${saveResponse.statusText}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving to shared service:', error);
+      throw new Error('Error al guardar en el servicio compartido: ' + error.message);
+    }
   };
 
-  const closePhotoModal = () => {
-    setSelectedPhoto(null);
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    
+    setUploading(true);
+    setError('');
+    
+    try {
+      // Usar servicio gratuito como fallback si ImgBB no está configurado
+      const useImgBB = IMGBB_API_KEY && IMGBB_API_KEY !== 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4';
+      
+      // Subir todas las imágenes
+      const uploadPromises = selectedFiles.map((file, index) => 
+        useImgBB ? uploadToImgBB(file, index) : uploadToFreeService(file, index)
+      );
+      
+      const uploadedPhotos = await Promise.all(uploadPromises);
+      
+      // Agregar timestamp
+      const photosWithTimestamp = uploadedPhotos.map(photo => ({
+        ...photo,
+        uploadedAt: new Date().toISOString()
+      }));
+      
+      // Para esta demostración, solo notificar al componente padre
+      // En producción, aquí guardarías en el servicio compartido
+      onPhotosUploaded(photosWithTimestamp);
+      
+      // Limpiar formulario
+      setSelectedFiles([]);
+      setPreviews([]);
+      setShowModal(false);
+      setIsAuthenticated(false);
+      setPassword('');
+      setUploadProgress({});
+      
+    } catch (error) {
+      console.error('Error al subir fotos:', error);
+      setError(`Error al subir las fotos: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleRefresh = () => {
-    loadPhotos();
+  const closeModal = () => {
+    setShowModal(false);
+    setIsAuthenticated(false);
+    setPassword('');
+    setError('');
+    setSelectedFiles([]);
+    setPreviews([]);
+    setUploadProgress({});
   };
-
-  if (loading) {
-    return (
-      <div className="korea-photos-gallery bg-gradient-to-br from-blue-50 to-pink-50 rounded-xl p-8 text-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-          <h3 className="text-2xl font-bold text-gray-800">Cargando fotos de Corea...</h3>
-          <p className="text-gray-600">Preparando la galería</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="korea-photos-gallery">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="bg-blue-500 rounded-full p-3">
-            <MapPin className="text-white" size={24} />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-800">Viaje en Corea</h2>
-          <div className="bg-red-500 rounded-full p-3">
-            <Heart className="text-white fill-current" size={24} />
-          </div>
-        </div>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          Compartiendo los momentos más hermosos del viaje a Corea. 
-          Cada foto cuenta una historia especial de esta aventura.
-        </p>
-        <div className="mt-4 flex items-center justify-center gap-4">
-          <div className="text-sm text-blue-600 font-medium">
-            {photos.length} foto{photos.length !== 1 ? 's' : ''} compartida{photos.length !== 1 ? 's' : ''}
-          </div>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors"
-            title="Refrescar galería"
-          >
-            <RefreshCw size={12} />
-            Actualizar
-          </button>
-        </div>
-        {lastRefresh && (
-          <p className="text-xs text-gray-500 mt-2">
-            Última actualización: {lastRefresh}
-          </p>
-        )}
-        {newPhotos.length > 0 && (
-          <div className="mt-2 text-sm text-green-600 bg-green-50 rounded-full px-4 py-1 inline-block">
-            ¡{newPhotos.length} nueva{newPhotos.length > 1 ? 's' : ''} foto{newPhotos.length > 1 ? 's' : ''} añadida{newPhotos.length > 1 ? 's' : ''}!
-          </div>
-        )}
-      </div>
+    <>
+      {/* Botón para abrir modal */}
+      <button
+        onClick={() => setShowModal(true)}
+        className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300 transform hover:scale-105 shadow-lg"
+      >
+        <Upload size={20} />
+        Subir Fotos del Viaje
+      </button>
 
-      {/* Galería de fotos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {photos.map((photo, index) => (
-          <div
-            key={`${photo.url}-${index}`}
-            className="group relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer"
-            onClick={() => openPhotoModal(photo)}
-          >
-            {/* Imagen */}
-            <div className="aspect-square overflow-hidden">
-              <img
-                src={photo.url}
-                alt={photo.title || `Foto de Corea ${index + 1}`}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                loading="lazy"
-                onError={(e) => {
-                  const img = e.target as HTMLImageElement;
-                  img.style.display = 'none';
-                  const parent = img.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center"><span class="text-gray-500 text-sm">Error al cargar</span></div>';
-                  }
-                }}
-              />
-            </div>
-            
-            {/* Overlay con información */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-              <div className="text-white">
-                <div className="flex items-center text-xs mb-1">
-                  <Calendar size={12} className="mr-1" />
-                  {formatDate(photo.uploadedAt)}
-                </div>
-                <div className="text-sm font-medium truncate">
-                  {photo.title || 'Momento en Corea'}
-                </div>
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-800">
+                  {!isAuthenticated ? 'Acceso Requerido' : 'Subir Fotos de Corea'}
+                </h2>
+                <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
+                  <X size={24} />
+                </button>
               </div>
-            </div>
 
-            {/* Botón de eliminar */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDeleteConfirm(photo.url);
-              }}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-              title="Eliminar foto"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Modal de foto ampliada */}
-      {selectedPhoto && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
-          onClick={closePhotoModal}
-        >
-          <div 
-            className="max-w-4xl max-h-[90vh] w-full flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header del modal */}
-            <div className="flex justify-between items-center mb-4 text-white">
-              <div>
-                <h3 className="text-xl font-bold">
-                  {selectedPhoto.title || 'Momento en Corea'}
-                </h3>
-                <p className="text-sm opacity-75 flex items-center">
-                  <Calendar size={14} className="mr-1" />
-                  {formatDate(selectedPhoto.uploadedAt)}
+              {/* Advertencia sobre API key */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-sm">
+                <p className="text-orange-800 font-medium">⚠️ Configuración requerida</p>
+                <p className="text-orange-600 text-xs mt-1">
+                  Para usar ImgBB, necesitas configurar una API key válida en el código
                 </p>
               </div>
-              <button
-                onClick={closePhotoModal}
-                className="text-white hover:text-gray-300 text-3xl font-light"
-              >
-                ×
-              </button>
-            </div>
-            
-            {/* Imagen ampliada */}
-            <div className="flex-1 flex items-center justify-center">
-              <img
-                src={selectedPhoto.url}
-                alt={selectedPhoto.title || 'Foto de Corea'}
-                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Modal de confirmación de eliminación */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              ¿Eliminar foto?
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Esta foto se eliminará de la galería. ¿Estás seguro?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDelete(showDeleteConfirm)}
-                className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Eliminar
-              </button>
+              {/* Autenticación */}
+              {!isAuthenticated ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-gray-600 mb-4">
+                    <Lock size={20} />
+                    <span>Ingresa la contraseña para subir fotos del viaje</span>
+                  </div>
+                  
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Contraseña"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+                  />
+                  
+                  {error && (
+                    <div className="flex items-center gap-2 text-red-600 text-sm">
+                      <AlertCircle size={16} />
+                      {error}
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={handlePasswordSubmit}
+                    className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded-lg transition-colors"
+                  >
+                    Ingresar
+                  </button>
+                </div>
+              ) : (
+                /* Subida de fotos */
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-green-600 mb-4">
+                    <Check size={20} />
+                    <span>¡Listo para compartir momentos de Corea!</span>
+                  </div>
+
+                  {/* Información importante */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                    <p className="text-blue-800 font-medium">📱 Modo demostración</p>
+                    <p className="text-blue-600 text-xs mt-1">
+                      Las fotos se mostrarán temporalmente en esta sesión
+                    </p>
+                  </div>
+
+                  {/* Selector de archivos */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="file-upload"
+                      disabled={uploading}
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className={`cursor-pointer flex flex-col items-center gap-2 ${uploading ? 'opacity-50' : ''}`}
+                    >
+                      <Upload className="text-gray-400" size={48} />
+                      <span className="text-gray-600">Selecciona fotos del viaje a Corea</span>
+                      <span className="text-sm text-gray-500">Máximo 3 imágenes</span>
+                    </label>
+                  </div>
+
+                  {/* Previsualizaciones con progreso */}
+                  {previews.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-gray-700">Fotos seleccionadas:</h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        {previews.map((preview, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg"
+                            />
+                            {!uploading && (
+                              <button
+                                onClick={() => removeFile(index)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                              >
+                                <X size={16} />
+                              </button>
+                            )}
+                            {uploadProgress[index] !== undefined && uploadProgress[index] >= 0 && (
+                              <div className="absolute bottom-1 left-1 right-1 bg-black bg-opacity-50 rounded">
+                                <div 
+                                  className="bg-green-500 h-1 rounded transition-all duration-300"
+                                  style={{ width: `${uploadProgress[index]}%` }}
+                                />
+                              </div>
+                            )}
+                            {uploadProgress[index] === -1 && (
+                              <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center rounded-lg">
+                                <span className="text-white text-xs">Error</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="flex items-center gap-2 text-red-600 text-sm">
+                      <AlertCircle size={16} />
+                      {error}
+                    </div>
+                  )}
+
+                  {/* Botón de subir */}
+                  <button
+                    onClick={handleUpload}
+                    disabled={selectedFiles.length === 0 || uploading}
+                    className="w-full bg-pink-500 hover:bg-pink-600 disabled:bg-gray-400 text-white py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={20} />
+                        Compartir {selectedFiles.length} foto{selectedFiles.length !== 1 ? 's' : ''}
+                      </>
+                    )}
+                  </button>
+                  
+                  <p className="text-xs text-gray-500 text-center">
+                    Versión de demostración - Configura ImgBB API para funcionalidad completa
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
-export default SharedKoreaGallery;
+export default PhotoUploadShared;

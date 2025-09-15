@@ -20,10 +20,10 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
   
   // API Key de ImgBB - NECESITAS OBTENER UNA API KEY VÁLIDA
   // Ve a https://api.imgbb.com/ y regístrate para obtener una API key gratuita
-  const IMGBB_API_KEY = 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4'; // REEMPLAZA CON TU API KEY REAL
+  const IMGBB_API_KEY = 'c76cf58613a488c3b14fee596a71898a'; // REEMPLAZA CON TU API KEY REAL
   
   // JSONBin para compartir URLs entre dispositivos (gratis)
-  const JSONBIN_API_KEY = '$2a$10$VmNP2S.huINnjHhoen6ISu9xr/.rs63Igu70nrX8/VY5WMoVoqh/m';
+  const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
 
   const handlePasswordSubmit = () => {
     if (password === UPLOAD_PASSWORD) {
@@ -125,20 +125,52 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
     }
   };
 
-  // Función simplificada que solo almacena localmente para demostración
+  // Función real para guardar en JSONBin (cuando esté configurado)
   const saveToSharedService = async (newPhotos: any[]) => {
+    // Solo intentar guardar si JSONBin está configurado
+    if (JSONBIN_BIN_ID === 'NECESITAS_CREAR_UN_BIN_PRIMERO') {
+      console.log('JSONBin no configurado, saltando guardado compartido');
+      return true;
+    }
+    
     try {
-      // Para esta demostración, solo simulamos el almacenamiento
-      // En producción real necesitarías configurar JSONBin correctamente
-      console.log('Fotos que se guardarían:', newPhotos);
-      
-      // Simular delay de red
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Obtener fotos existentes
+      const existingResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        headers: {
+          'X-Master-Key': JSONBIN_API_KEY,
+        },
+      });
+
+      let existingPhotos = [];
+      if (existingResponse.ok) {
+        const existingData = await existingResponse.json();
+        existingPhotos = existingData.record?.photos || [];
+      }
+
+      // Combinar con nuevas fotos
+      const allPhotos = [...existingPhotos, ...newPhotos];
+
+      // Guardar en JSONBin
+      const saveResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_API_KEY,
+        },
+        body: JSON.stringify({
+          photos: allPhotos,
+          lastUpdated: new Date().toISOString()
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error(`Error ${saveResponse.status}: ${saveResponse.statusText}`);
+      }
       
       return true;
     } catch (error) {
       console.error('Error saving to shared service:', error);
-      throw new Error('Error al guardar en el servicio compartido');
+      throw new Error('Error al guardar en el servicio compartido: ' + error.message);
     }
   };
 
