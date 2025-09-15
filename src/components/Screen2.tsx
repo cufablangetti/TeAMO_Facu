@@ -2,8 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import EnhancedPhotoCarousel from './EnhancedPhotoCarousel';
 import VideoPlayer from './VideoPlayer';
 import RomanticMessage from './RomanticMessage';
-import PhotoUploadImgBB from './PhotoUploadShared';
-import KoreaPhotosGallery from './SharedKoreaGallery';
+import PhotoUploadImgBB from './PhotoUploadJsonBin';
+import KoreaPhotosGallery from './SharedKoreaGalleryJsonBin';
 
 interface KoreaPhoto {
   url: string;

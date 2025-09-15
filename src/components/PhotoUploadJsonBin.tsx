@@ -5,7 +5,7 @@ interface PhotoUploadProps {
   onPhotosUploaded: (photos: { url: string; title: string; uploadedAt: string }[]) => void;
 }
 
-const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => {
+const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => {
   const [showModal, setShowModal] = useState(false);
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,15 +15,12 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{[key: number]: number}>({});
 
-  // Contraseña hardcodeada
+  // Contraseña
   const UPLOAD_PASSWORD = 'coti2025';
   
-  // API Key de ImgBB - NECESITAS OBTENER UNA API KEY VÁLIDA
-  // Ve a https://api.imgbb.com/ y regístrate para obtener una API key gratuita
-  const IMGBB_API_KEY = 'c76cf58613a488c3b14fee596a71898a'; // REEMPLAZA CON TU API KEY REAL
-  
-  // JSONBin para compartir URLs entre dispositivos (gratis)
+  // JSONBin configuración - DEBES REEMPLAZAR ESTOS VALORES
   const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
+  const JSONBIN_BIN_ID = '68c75c3b43b1c97be9431120';
 
   const handlePasswordSubmit = () => {
     if (password === UPLOAD_PASSWORD) {
@@ -37,12 +34,12 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    const limitedFiles = imageFiles.slice(0, 3);
+    const limitedFiles = imageFiles.slice(0, 5); // Máximo 5 fotos
     
     setSelectedFiles(limitedFiles);
     
+    // Crear previews
     const newPreviews = limitedFiles.map(file => URL.createObjectURL(file));
     setPreviews(newPreviews);
     setUploadProgress({});
@@ -58,148 +55,104 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
     setPreviews(newPreviews);
   };
 
-  // Función alternativa usando servicio gratuito de hosting de imágenes
-  const uploadToFreeService = async (file: File, index: number): Promise<{url: string; title: string}> => {
-    setUploadProgress(prev => ({ ...prev, [index]: 0 }));
-    
-    // Convertir archivo a base64 para almacenamiento temporal
-    return new Promise((resolve) => {
+  // Convertir archivo a base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        setUploadProgress(prev => ({ ...prev, [index]: 100 }));
-        
-        // Por ahora, crear URL temporal (en producción usarías un servicio real)
-        const tempUrl = reader.result as string;
-        resolve({
-          url: tempUrl,
-          title: file.name
-        });
-      };
-      
-      setUploadProgress(prev => ({ ...prev, [index]: 50 }));
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   };
 
-  const uploadToImgBB = async (file: File, index: number): Promise<{url: string; title: string}> => {
-    // Validar que la API key no sea el placeholder
-    if (IMGBB_API_KEY === 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4' || !IMGBB_API_KEY) {
-      throw new Error('Por favor, configura una API key válida de ImgBB');
-    }
-
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('key', IMGBB_API_KEY);
-    formData.append('name', `corea-viaje-${Date.now()}-${index}`);
-
+  // Obtener fotos existentes de JSONBin
+  const getExistingPhotos = async () => {
     try {
-      setUploadProgress(prev => ({ ...prev, [index]: 0 }));
-      
-      const response = await fetch('https://api.imgbb.com/1/upload', {
-        method: 'POST',
-        body: formData,
+      const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        headers: {
+          'X-Master-Key': JSONBIN_API_KEY,
+        },
       });
 
-      setUploadProgress(prev => ({ ...prev, [index]: 50 }));
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Error ${response.status}: ${errorData.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      setUploadProgress(prev => ({ ...prev, [index]: 100 }));
-
-      if (data.success) {
-        return {
-          url: data.data.url,
-          title: data.data.title || file.name
-        };
+      if (response.ok) {
+        const data = await response.json();
+        return data.record?.photos || [];
+      } else if (response.status === 404) {
+        // El bin no existe, crearlo
+        return [];
       } else {
-        throw new Error(data.error?.message || 'Error al subir imagen');
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      setUploadProgress(prev => ({ ...prev, [index]: -1 }));
+      console.error('Error obteniendo fotos existentes:', error);
       throw error;
     }
   };
 
-  // Función real para guardar en JSONBin (cuando esté configurado)
-  const saveToSharedService = async (newPhotos: any[]) => {
-    // Solo intentar guardar si JSONBin está configurado
-    if (JSONBIN_BIN_ID === 'NECESITAS_CREAR_UN_BIN_PRIMERO') {
-      console.log('JSONBin no configurado, saltando guardado compartido');
-      return true;
+  // Guardar fotos en JSONBin
+  const savePhotosToJsonBin = async (allPhotos: any[]) => {
+    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY,
+      },
+      body: JSON.stringify({
+        photos: allPhotos,
+        lastUpdated: new Date().toISOString()
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error guardando: ${response.status} ${response.statusText}`);
     }
-    
-    try {
-      // Obtener fotos existentes
-      const existingResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-        headers: {
-          'X-Master-Key': JSONBIN_API_KEY,
-        },
-      });
 
-      let existingPhotos = [];
-      if (existingResponse.ok) {
-        const existingData = await existingResponse.json();
-        existingPhotos = existingData.record?.photos || [];
-      }
-
-      // Combinar con nuevas fotos
-      const allPhotos = [...existingPhotos, ...newPhotos];
-
-      // Guardar en JSONBin
-      const saveResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': JSONBIN_API_KEY,
-        },
-        body: JSON.stringify({
-          photos: allPhotos,
-          lastUpdated: new Date().toISOString()
-        }),
-      });
-
-      if (!saveResponse.ok) {
-        throw new Error(`Error ${saveResponse.status}: ${saveResponse.statusText}`);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error saving to shared service:', error);
-      throw new Error('Error al guardar en el servicio compartido: ' + error.message);
-    }
+    return await response.json();
   };
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
     
+    // Validar configuración
+    if (JSONBIN_API_KEY.includes('REEMPLAZA') || JSONBIN_BIN_ID.includes('REEMPLAZA')) {
+      setError('Debes configurar JSONBIN_API_KEY y JSONBIN_BIN_ID en el código');
+      return;
+    }
+    
     setUploading(true);
     setError('');
     
     try {
-      // Usar servicio gratuito como fallback si ImgBB no está configurado
-      const useImgBB = IMGBB_API_KEY && IMGBB_API_KEY !== 'f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4';
+      // Convertir archivos a base64
+      const convertedPhotos = [];
       
-      // Subir todas las imágenes
-      const uploadPromises = selectedFiles.map((file, index) => 
-        useImgBB ? uploadToImgBB(file, index) : uploadToFreeService(file, index)
-      );
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        setUploadProgress(prev => ({ ...prev, [i]: 25 }));
+        
+        const base64 = await fileToBase64(file);
+        setUploadProgress(prev => ({ ...prev, [i]: 75 }));
+        
+        convertedPhotos.push({
+          url: base64,
+          title: file.name,
+          uploadedAt: new Date().toISOString()
+        });
+        
+        setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+      }
       
-      const uploadedPhotos = await Promise.all(uploadPromises);
+      // Obtener fotos existentes
+      const existingPhotos = await getExistingPhotos();
       
-      // Agregar timestamp
-      const photosWithTimestamp = uploadedPhotos.map(photo => ({
-        ...photo,
-        uploadedAt: new Date().toISOString()
-      }));
+      // Combinar fotos
+      const allPhotos = [...existingPhotos, ...convertedPhotos];
       
-      // Para esta demostración, solo notificar al componente padre
-      // En producción, aquí guardarías en el servicio compartido
-      onPhotosUploaded(photosWithTimestamp);
+      // Guardar en JSONBin
+      await savePhotosToJsonBin(allPhotos);
+      
+      // Notificar al componente padre
+      onPhotosUploaded(convertedPhotos);
       
       // Limpiar formulario
       setSelectedFiles([]);
@@ -211,7 +164,7 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
       
     } catch (error) {
       console.error('Error al subir fotos:', error);
-      setError(`Error al subir las fotos: ${error.message}`);
+      setError(`Error: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -253,20 +206,28 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                 </button>
               </div>
 
-              {/* Advertencia sobre API key */}
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-sm">
-                <p className="text-orange-800 font-medium">⚠️ Configuración requerida</p>
-                <p className="text-orange-600 text-xs mt-1">
-                  Para usar ImgBB, necesitas configurar una API key válida en el código
-                </p>
-              </div>
+              {/* Configuración requerida */}
+              {(JSONBIN_API_KEY.includes('REEMPLAZA') || JSONBIN_BIN_ID.includes('REEMPLAZA')) && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="text-red-800 font-medium text-sm">⚠️ Configuración requerida</p>
+                  <p className="text-red-600 text-xs mt-1">
+                    Necesitas configurar JSONBIN_API_KEY y JSONBIN_BIN_ID en el código
+                  </p>
+                  <div className="mt-2 text-xs text-red-600">
+                    <p>1. Ve a jsonbin.io y regístrate</p>
+                    <p>2. Crea un bin nuevo</p>
+                    <p>3. Copia tu API Key y Bin ID</p>
+                    <p>4. Reemplaza en el código</p>
+                  </div>
+                </div>
+              )}
 
               {/* Autenticación */}
               {!isAuthenticated ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-gray-600 mb-4">
                     <Lock size={20} />
-                    <span>Ingresa la contraseña para subir fotos del viaje</span>
+                    <span>Ingresa la contraseña para subir fotos</span>
                   </div>
                   
                   <input
@@ -302,9 +263,9 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
 
                   {/* Información importante */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                    <p className="text-blue-800 font-medium">📱 Modo demostración</p>
+                    <p className="text-blue-800 font-medium">📱 Sincronización automática</p>
                     <p className="text-blue-600 text-xs mt-1">
-                      Las fotos se mostrarán temporalmente en esta sesión
+                      Las fotos se guardan en JSONBin y aparecen en todos los dispositivos
                     </p>
                   </div>
 
@@ -324,12 +285,12 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                       className={`cursor-pointer flex flex-col items-center gap-2 ${uploading ? 'opacity-50' : ''}`}
                     >
                       <Upload className="text-gray-400" size={48} />
-                      <span className="text-gray-600">Selecciona fotos del viaje a Corea</span>
-                      <span className="text-sm text-gray-500">Máximo 3 imágenes</span>
+                      <span className="text-gray-600">Selecciona fotos del viaje</span>
+                      <span className="text-sm text-gray-500">Máximo 5 imágenes</span>
                     </label>
                   </div>
 
-                  {/* Previsualizaciones con progreso */}
+                  {/* Previsualizaciones */}
                   {previews.length > 0 && (
                     <div className="space-y-2">
                       <h3 className="font-medium text-gray-700">Fotos seleccionadas:</h3>
@@ -357,11 +318,6 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                                 />
                               </div>
                             )}
-                            {uploadProgress[index] === -1 && (
-                              <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center rounded-lg">
-                                <span className="text-white text-xs">Error</span>
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -369,9 +325,9 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                   )}
 
                   {error && (
-                    <div className="flex items-center gap-2 text-red-600 text-sm">
+                    <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded">
                       <AlertCircle size={16} />
-                      {error}
+                      <span>{error}</span>
                     </div>
                   )}
 
@@ -384,7 +340,7 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                     {uploading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Procesando...
+                        Subiendo a JSONBin...
                       </>
                     ) : (
                       <>
@@ -395,7 +351,7 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
                   </button>
                   
                   <p className="text-xs text-gray-500 text-center">
-                    Versión de demostración - Configura ImgBB API para funcionalidad completa
+                    Las fotos se guardan como base64 en JSONBin y se sincronizan automáticamente
                   </p>
                 </div>
               )}
@@ -407,4 +363,4 @@ const PhotoUploadShared: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) => 
   );
 };
 
-export default PhotoUploadShared;
+export default PhotoUploadJsonBin;
