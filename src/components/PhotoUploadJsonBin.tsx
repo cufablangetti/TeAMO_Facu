@@ -18,7 +18,10 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
   // Contraseña
   const UPLOAD_PASSWORD = 'coti2025';
   
-  // JSONBin configuración - DEBES REEMPLAZAR ESTOS VALORES
+  // ImgBB API Key - REEMPLAZA CON TU API KEY DE IMGBB
+  const IMGBB_API_KEY = 'c76cf58613a488c3b14fee596a71898a';
+  
+  // JSONBin configuración - DEBES USAR TUS VALORES REALES
   const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
   const JSONBIN_BIN_ID = '68c75c3b43b1c97be9431120';
 
@@ -55,22 +58,36 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
     setPreviews(newPreviews);
   };
 
-  // Convertir archivo a base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+  // Subir imagen a ImgBB
+  const uploadToImgBB = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData,
     });
+
+    if (!response.ok) {
+      throw new Error(`ImgBB upload failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error('ImgBB upload failed');
+    }
+
+    return data.data.url;
   };
 
   // Obtener fotos existentes de JSONBin
   const getExistingPhotos = async () => {
     try {
-      const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+        method: 'GET',
         headers: {
           'X-Master-Key': JSONBIN_API_KEY,
+          'X-Access-Key': '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK',
         },
       });
 
@@ -78,42 +95,73 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
         const data = await response.json();
         return data.record?.photos || [];
       } else if (response.status === 404) {
-        // El bin no existe, crearlo
+        // El bin no existe, se creará automáticamente
         return [];
       } else {
+        console.error('Error response:', response.status, response.statusText);
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error obteniendo fotos existentes:', error);
-      throw error;
+      return []; // Devolver array vacío en caso de error
     }
   };
 
-  // Guardar fotos en JSONBin
+  // Crear o actualizar el bin en JSONBin
   const savePhotosToJsonBin = async (allPhotos: any[]) => {
-    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_API_KEY,
-      },
-      body: JSON.stringify({
-        photos: allPhotos,
-        lastUpdated: new Date().toISOString()
-      }),
-    });
+    try {
+      // Primero intentar crear el bin
+      let response = await fetch(`https://api.jsonbin.io/v3/b`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_API_KEY,
+          'X-Bin-Name': 'korea-photos',
+          'X-Collection-Id': '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK',
+        },
+        body: JSON.stringify({
+          photos: allPhotos,
+          lastUpdated: new Date().toISOString()
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Error guardando: ${response.status} ${response.statusText}`);
+      // Si el bin ya existe (409), actualizarlo
+      if (response.status === 409 || !response.ok) {
+        response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': JSONBIN_API_KEY,
+          },
+          body: JSON.stringify({
+            photos: allPhotos,
+            lastUpdated: new Date().toISOString()
+          }),
+        });
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('JSONBin error:', response.status, errorText);
+        throw new Error(`Error guardando: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error en savePhotosToJsonBin:', error);
+      throw error;
     }
-
-    return await response.json();
   };
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
     
     // Validar configuración
+    if (IMGBB_API_KEY.includes('REEMPLAZA')) {
+      setError('Debes configurar IMGBB_API_KEY en el código');
+      return;
+    }
+    
     if (JSONBIN_API_KEY.includes('REEMPLAZA') || JSONBIN_BIN_ID.includes('REEMPLAZA')) {
       setError('Debes configurar JSONBIN_API_KEY y JSONBIN_BIN_ID en el código');
       return;
@@ -123,18 +171,19 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
     setError('');
     
     try {
-      // Convertir archivos a base64
-      const convertedPhotos = [];
+      // Subir archivos a ImgBB
+      const uploadedPhotos = [];
       
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         setUploadProgress(prev => ({ ...prev, [i]: 25 }));
         
-        const base64 = await fileToBase64(file);
+        // Subir a ImgBB
+        const imageUrl = await uploadToImgBB(file);
         setUploadProgress(prev => ({ ...prev, [i]: 75 }));
         
-        convertedPhotos.push({
-          url: base64,
+        uploadedPhotos.push({
+          url: imageUrl,
           title: file.name,
           uploadedAt: new Date().toISOString()
         });
@@ -142,17 +191,23 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
         setUploadProgress(prev => ({ ...prev, [i]: 100 }));
       }
       
-      // Obtener fotos existentes
+      // Obtener fotos existentes de JSONBin
       const existingPhotos = await getExistingPhotos();
       
-      // Combinar fotos
-      const allPhotos = [...existingPhotos, ...convertedPhotos];
+      // Combinar fotos (evitar duplicados por URL)
+      const allPhotos = [...existingPhotos];
+      uploadedPhotos.forEach(newPhoto => {
+        const exists = allPhotos.some(existing => existing.url === newPhoto.url);
+        if (!exists) {
+          allPhotos.push(newPhoto);
+        }
+      });
       
       // Guardar en JSONBin
       await savePhotosToJsonBin(allPhotos);
       
       // Notificar al componente padre
-      onPhotosUploaded(convertedPhotos);
+      onPhotosUploaded(uploadedPhotos);
       
       // Limpiar formulario
       setSelectedFiles([]);
@@ -207,17 +262,16 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
               </div>
 
               {/* Configuración requerida */}
-              {(JSONBIN_API_KEY.includes('REEMPLAZA') || JSONBIN_BIN_ID.includes('REEMPLAZA')) && (
+              {(IMGBB_API_KEY.includes('REEMPLAZA') || JSONBIN_API_KEY.includes('REEMPLAZA') || JSONBIN_BIN_ID.includes('REEMPLAZA')) && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                   <p className="text-red-800 font-medium text-sm">⚠️ Configuración requerida</p>
-                  <p className="text-red-600 text-xs mt-1">
-                    Necesitas configurar JSONBIN_API_KEY y JSONBIN_BIN_ID en el código
-                  </p>
+                  <div className="text-red-600 text-xs mt-1 space-y-1">
+                    {IMGBB_API_KEY.includes('REEMPLAZA') && <p>• Configura IMGBB_API_KEY</p>}
+                    {(JSONBIN_API_KEY.includes('REEMPLAZA') || JSONBIN_BIN_ID.includes('REEMPLAZA')) && <p>• Configura JSONBin API Key y Bin ID</p>}
+                  </div>
                   <div className="mt-2 text-xs text-red-600">
-                    <p>1. Ve a jsonbin.io y regístrate</p>
-                    <p>2. Crea un bin nuevo</p>
-                    <p>3. Copia tu API Key y Bin ID</p>
-                    <p>4. Reemplaza en el código</p>
+                    <p><strong>ImgBB:</strong> Regístrate en imgbb.com para obtener API key</p>
+                    <p><strong>JSONBin:</strong> Regístrate en jsonbin.io para obtener API key y crear bin</p>
                   </div>
                 </div>
               )}
@@ -261,11 +315,13 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
                     <span>¡Listo para compartir momentos de Corea!</span>
                   </div>
 
-                  {/* Información importante */}
+                  {/* Información del proceso */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                    <p className="text-blue-800 font-medium">📱 Sincronización automática</p>
+                    <p className="text-blue-800 font-medium">📱 Proceso de subida:</p>
                     <p className="text-blue-600 text-xs mt-1">
-                      Las fotos se guardan en JSONBin y aparecen en todos los dispositivos
+                      1. Fotos → ImgBB (hosting)<br/>
+                      2. URLs → JSONBin (sincronización)<br/>
+                      3. Disponible en todos los dispositivos
                     </p>
                   </div>
 
@@ -340,7 +396,7 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
                     {uploading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Subiendo a JSONBin...
+                        Subiendo...
                       </>
                     ) : (
                       <>
@@ -351,7 +407,7 @@ const PhotoUploadJsonBin: React.FC<PhotoUploadProps> = ({ onPhotosUploaded }) =>
                   </button>
                   
                   <p className="text-xs text-gray-500 text-center">
-                    Las fotos se guardan como base64 en JSONBin y se sincronizan automáticamente
+                    Fotos → ImgBB → JSONBin → Sincronización automática
                   </p>
                 </div>
               )}

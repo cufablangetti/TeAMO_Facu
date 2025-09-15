@@ -19,7 +19,7 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
   const [lastRefresh, setLastRefresh] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  // JSONBin configuración - DEBES REEMPLAZAR ESTOS VALORES CON LOS MISMOS QUE EN EL UPLOAD
+  // JSONBin configuración - DEBES USAR TUS VALORES REALES
   const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
   const JSONBIN_BIN_ID = '68c75c3b43b1c97be9431120';
 
@@ -36,7 +36,9 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
       setLoading(true);
       setError('');
       
-      const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      // Usar el endpoint /latest para obtener la versión más reciente
+      const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+        method: 'GET',
         headers: {
           'X-Master-Key': JSONBIN_API_KEY,
         },
@@ -55,12 +57,14 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
         );
         
         setPhotos(uniquePhotos);
-        setLastRefresh(new Date().toLocaleTimeString());
+        setLastRefresh(new Date().toLocaleTimeString('es-ES'));
       } else if (response.status === 404) {
         // El bin no existe todavía
         setPhotos([...newPhotos]);
-        setError('Bin no encontrado. Se creará cuando subas la primera foto.');
+        setError('No hay fotos compartidas aún. Sube la primera foto para crear la galería.');
       } else {
+        const errorText = await response.text();
+        console.error('JSONBin response error:', response.status, errorText);
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
@@ -70,7 +74,7 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
       
       // Mostrar solo fotos nuevas en caso de error
       setPhotos([...newPhotos]);
-      setLastRefresh('Error - ' + new Date().toLocaleTimeString());
+      setLastRefresh('Error - ' + new Date().toLocaleTimeString('es-ES'));
     } finally {
       setLoading(false);
     }
@@ -120,7 +124,7 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
       
       // Actualizar en JSONBin si está configurado
       if (!JSONBIN_API_KEY.includes('REEMPLAZA') && !JSONBIN_BIN_ID.includes('REEMPLAZA')) {
-        await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -131,6 +135,10 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
             lastUpdated: new Date().toISOString()
           }),
         });
+
+        if (!response.ok) {
+          throw new Error(`Error updating: ${response.status}`);
+        }
       }
       
       // Cerrar confirmación y modal
@@ -163,7 +171,7 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
           <h3 className="text-2xl font-bold text-gray-800">Cargando fotos de Corea...</h3>
-          <p className="text-gray-600">Sincronizando con JSONBin...</p>
+          <p className="text-gray-600">Sincronizando desde JSONBin...</p>
         </div>
       </div>
     );
@@ -184,7 +192,7 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
         </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Compartiendo los momentos más hermosos del viaje a Corea. 
-          Cada foto se sincroniza automáticamente entre todos los dispositivos.
+          Cada foto se guarda en ImgBB y se sincroniza automáticamente vía JSONBin.
         </p>
         
         {/* Error de configuración */}
@@ -194,9 +202,9 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
             {error.includes('configurado') && (
               <div className="mt-2 text-xs text-orange-600">
                 <p>Para sincronizar entre dispositivos:</p>
-                <p>1. Ve a jsonbin.io y regístrate</p>
+                <p>1. Ve a jsonbin.io y crea una cuenta</p>
                 <p>2. Crea un bin nuevo</p>
-                <p>3. Configura API Key y Bin ID en ambos componentes</p>
+                <p>3. Configura API Key y Bin ID en el código</p>
               </div>
             )}
           </div>
@@ -210,8 +218,9 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
             onClick={handleRefresh}
             className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors"
             title="Refrescar galería"
+            disabled={loading}
           >
-            <RefreshCw size={12} />
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             Sincronizar
           </button>
         </div>
