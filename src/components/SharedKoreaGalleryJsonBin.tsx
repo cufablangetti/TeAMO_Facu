@@ -192,7 +192,7 @@ const SharedKoreaGalleryJsonBin: React.FC<SharedKoreaGalleryProps> = ({ newPhoto
         </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Compartiendo los momentos más hermosos del viaje a Corea. 
-          Cada foto se guarda en ImgBB y se sincroniza automáticamente vía JSONBin.
+          Te amo un mundo, aca lo podes compartir para tener tus mejores fotos.
         </p>
         
         {/* Error de configuración */}
