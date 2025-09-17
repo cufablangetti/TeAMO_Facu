@@ -4,6 +4,8 @@ import VideoPlayer from './VideoPlayer';
 import RomanticMessage from './RomanticMessage';
 import PhotoUploadImgBB from './PhotoUploadJsonBin';
 import KoreaPhotosGallery from './SharedKoreaGalleryJsonBin';
+import PhotoUploadWithComments from './PhotoUploadWithComments';
+import PhotosWithCommentsGallery from './PhotosWithCommentsGallery';
 
 interface KoreaPhoto {
   url: string;
@@ -11,10 +13,18 @@ interface KoreaPhoto {
   uploadedAt: string;
 }
 
+interface PhotoWithComment {
+  url: string;
+  title: string;
+  comment: string;
+  uploadedAt: string;
+}
+
 const Screen2: React.FC = () => {
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
   const [koreaPhotos, setKoreaPhotos] = useState<KoreaPhoto[]>([]);
+  const [photosWithComments, setPhotosWithComments] = useState<PhotoWithComment[]>([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
@@ -62,9 +72,23 @@ const Screen2: React.FC = () => {
     setTimeout(() => setShowSuccessMessage(false), 3000);
     
     // Scroll suave hacia la sección de Corea
-    const koreaSection = sectionRefs.current[3];
+    const koreaSection = sectionRefs.current[4];
     if (koreaSection) {
       koreaSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handlePhotosWithCommentsUploaded = (photos: PhotoWithComment[]) => {
+    setPhotosWithComments(prev => [...prev, ...photos]);
+    setShowSuccessMessage(true);
+    
+    // Ocultar mensaje después de 3 segundos
+    setTimeout(() => setShowSuccessMessage(false), 3000);
+    
+    // Scroll suave hacia la sección de fotos con comentarios
+    const commentsSection = sectionRefs.current[5];
+    if (commentsSection) {
+      commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -82,26 +106,6 @@ const Screen2: React.FC = () => {
         )}
       </header>
 
-      {/* Sección de subida de fotos generales
-      <section className="py-6 px-4 bg-pink-50 border-b border-pink-200">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-center sm:text-left">
-            <h3 className="text-lg font-semibold text-pink-800 mb-1">
-              ¡Comparte tus momentos especiales!
-            </h3>
-            <p className="text-pink-600 text-sm">
-              Agrega fotos a la galería principal
-            </p>
-          </div>
-          <button
-            onClick={() => handlePhotosUploaded(['placeholder'])}
-            className="bg-pink-400 hover:bg-pink-500 text-white px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300 transform hover:scale-105 shadow-lg"
-          >
-            📸 Subir Fotos Generales
-          </button>
-        </div>
-      </section> */}
-
       {/* Sección de subida de fotos de Corea */}
       <section className="py-6 px-4 bg-gradient-to-r from-blue-50 to-red-50 border-b border-blue-200">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -117,13 +121,38 @@ const Screen2: React.FC = () => {
         </div>
       </section>
 
+      {/* Sección de subida de fotos con comentarios */}
+      <section className="py-6 px-4 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-200">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-center sm:text-left">
+            <h3 className="text-lg font-semibold text-purple-800 mb-1 flex items-center gap-2">
+              💜 Fotos Especiales con Comentarios
+            </h3>
+            <p className="text-purple-600 text-sm">
+              Momentos únicos con nuestros pensamientos y recuerdos
+            </p>
+          </div>
+          <PhotoUploadWithComments onPhotosUploaded={handlePhotosWithCommentsUploaded} />
+        </div>
+      </section>
+
       {/* Sección de fotos de Corea */}
       <section 
-        ref={(el) => (sectionRefs.current[3] = el)} 
+        ref={(el) => (sectionRefs.current[4] = el)} 
         className="py-12 px-4 opacity-0 bg-gradient-to-br from-blue-50 to-pink-50"
       >
         <div className="max-w-6xl mx-auto">
           <KoreaPhotosGallery newPhotos={koreaPhotos} />
+        </div>
+      </section>
+
+      {/* Sección de fotos con comentarios */}
+      <section 
+        ref={(el) => (sectionRefs.current[5] = el)} 
+        className="py-12 px-4 opacity-0 bg-gradient-to-br from-purple-50 to-pink-50"
+      >
+        <div className="max-w-6xl mx-auto">
+          <PhotosWithCommentsGallery newPhotos={photosWithComments} />
         </div>
       </section>
 
@@ -173,6 +202,8 @@ const Screen2: React.FC = () => {
             <span>🇦🇷 Mendoza</span>
             <span>•</span>
             <span>🇰🇷 Corea del Sur</span>
+            <span>•</span>
+            <span>💜 Fotos Especiales</span>
             <span>•</span>
             <span>❤️ Para siempre</span>
           </div>
