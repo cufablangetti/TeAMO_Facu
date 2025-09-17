@@ -31,7 +31,7 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
   
   // JSONBin configuración - Bin para fotos con comentarios
   const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
-  const JSONBIN_BIN_ID = '68caf72b43b1c97be9465daf';
+  const JSONBIN_BIN_ID = '68c75c3b43b1c97be9431120';
 
   const handlePasswordSubmit = () => {
     if (password === UPLOAD_PASSWORD) {
