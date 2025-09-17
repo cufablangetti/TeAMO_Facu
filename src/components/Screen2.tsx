@@ -214,3 +214,4 @@ const Screen2: React.FC = () => {
 };
 
 export default Screen2;
+//te amo mi coti
