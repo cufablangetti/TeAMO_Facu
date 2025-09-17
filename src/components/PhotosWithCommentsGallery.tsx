@@ -23,7 +23,7 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
 
   // JSONBin configuración - Mismo bin que PhotoUploadWithComments
   const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
-  const JSONBIN_BIN_ID = '68c75c3b43b1c97be9431120';
+  const JSONBIN_BIN_ID = '68cafeaa43b1c97be9466452';
   const MAX_RETRIES = 3;
 
   // Función para cargar fotos desde JSONBin con reintentos
