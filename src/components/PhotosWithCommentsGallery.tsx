@@ -19,44 +19,67 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [retryCount, setRetryCount] = useState(0);
 
   // JSONBin configuración - Mismo bin que PhotoUploadWithComments
   const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
   const JSONBIN_BIN_ID = '68caf72b43b1c97be9465daf';
+  const MAX_RETRIES = 3;
 
-  // Función para cargar fotos desde JSONBin
-  const loadSharedPhotos = async () => {
+  // Función para cargar fotos desde JSONBin con reintentos
+  const loadSharedPhotos = async (isRetry = false) => {
     try {
-      setLoading(true);
-      setError('');
+      if (!isRetry) {
+        setLoading(true);
+        setError('');
+      }
+      
+      console.log('Cargando fotos desde JSONBin...', { binId: JSONBIN_BIN_ID, retry: retryCount });
       
       const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
         method: 'GET',
         headers: {
           'X-Master-Key': JSONBIN_API_KEY,
+          'Cache-Control': 'no-cache'
         },
       });
 
+      console.log('Respuesta de JSONBin:', { status: response.status, ok: response.ok });
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Datos recibidos:', data);
+        
         const sharedPhotos = data.record?.photos || [];
+        console.log('Fotos compartidas encontradas:', sharedPhotos.length);
         
         // Combinar fotos compartidas con nuevas fotos locales
-        const allPhotos = [...sharedPhotos, ...newPhotos];
+        const allPhotos = [...sharedPhotos];
         
-        // Eliminar duplicados basándose en la URL
-        const uniquePhotos = allPhotos.filter((photo, index, self) => 
-          index === self.findIndex(p => p.url === photo.url)
-        );
+        // Agregar nuevas fotos locales si no existen ya
+        newPhotos.forEach(newPhoto => {
+          const exists = allPhotos.some(existing => existing.url === newPhoto.url);
+          if (!exists) {
+            allPhotos.push(newPhoto);
+          }
+        });
         
         // Ordenar por fecha más reciente primero
-        uniquePhotos.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+        allPhotos.sort((a, b) => {
+          const dateA = new Date(a.uploadedAt).getTime();
+          const dateB = new Date(b.uploadedAt).getTime();
+          return dateB - dateA;
+        });
         
-        setPhotos(uniquePhotos);
+        console.log('Total de fotos después de combinar:', allPhotos.length);
+        setPhotos(allPhotos);
         setLastRefresh(new Date().toLocaleTimeString('es-ES'));
+        setRetryCount(0); // Reset retry count on success
+        
       } else if (response.status === 404) {
+        console.log('Bin no encontrado, usando solo fotos locales');
         setPhotos([...newPhotos]);
-        setError('No hay fotos compartidas aún. Sube la primera foto para crear la galería.');
+        setError('No hay fotos compartidas aún. Las fotos se mostrarán una vez que alguien suba la primera.');
       } else {
         const errorText = await response.text();
         console.error('JSONBin response error:', response.status, errorText);
@@ -65,38 +88,59 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
       
     } catch (error) {
       console.error('Error loading shared photos:', error);
-      setError(`Error cargando fotos: ${error.message}`);
-      setPhotos([...newPhotos]);
+      
+      // Implementar reintentos automáticos
+      if (retryCount < MAX_RETRIES) {
+        console.log(`Reintentando... (${retryCount + 1}/${MAX_RETRIES})`);
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => loadSharedPhotos(true), 2000 * (retryCount + 1)); // Backoff exponencial
+        return;
+      }
+      
+      setError(`Error cargando fotos: ${error.message}. Reintentos agotados.`);
+      setPhotos([...newPhotos]); // Fallback a fotos locales
       setLastRefresh('Error - ' + new Date().toLocaleTimeString('es-ES'));
     } finally {
-      setLoading(false);
+      if (!isRetry) {
+        setLoading(false);
+      }
     }
   };
 
   // Cargar fotos al montar el componente
   useEffect(() => {
+    console.log('Componente montado, cargando fotos...');
     loadSharedPhotos();
   }, []);
 
   // Recargar cuando hay nuevas fotos
   useEffect(() => {
     if (newPhotos.length > 0) {
+      console.log('Nuevas fotos detectadas:', newPhotos.length);
       loadSharedPhotos();
     }
-  }, [newPhotos]);
+  }, [newPhotos.length]); // Cambio: usar length en lugar del array completo
 
   // Auto-refresh cada 30 segundos
   useEffect(() => {
+    console.log('Configurando auto-refresh...');
     const interval = setInterval(() => {
-      loadSharedPhotos();
+      console.log('Auto-refresh ejecutándose...');
+      loadSharedPhotos(true); // Es un retry, no mostrar loading
     }, 30000);
     
-    return () => clearInterval(interval);
+    return () => {
+      console.log('Limpiando auto-refresh...');
+      clearInterval(interval);
+    };
   }, []);
 
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        throw new Error('Fecha inválida');
+      }
       return date.toLocaleDateString('es-ES', {
         day: 'numeric',
         month: 'short',
@@ -104,16 +148,23 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
         hour: '2-digit',
         minute: '2-digit'
       });
-    } catch {
+    } catch (error) {
+      console.error('Error formateando fecha:', dateString, error);
       return 'Fecha no disponible';
     }
   };
 
   const handleDelete = async (photoUrl: string) => {
     try {
+      console.log('Eliminando foto:', photoUrl);
+      
       const updatedPhotos = photos.filter(photo => photo.url !== photoUrl);
+      console.log('Fotos después de eliminar:', updatedPhotos.length);
+      
+      // Actualizar estado local primero
       setPhotos(updatedPhotos);
       
+      // Actualizar en JSONBin
       const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
         method: 'PUT',
         headers: {
@@ -127,15 +178,25 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error actualizando JSONBin:', response.status, errorText);
         throw new Error(`Error updating: ${response.status}`);
       }
       
+      console.log('Foto eliminada exitosamente de JSONBin');
       setShowDeleteConfirm(null);
+      
       if (selectedPhoto?.url === photoUrl) {
         setSelectedPhoto(null);
       }
+      
+      // Recargar para confirmar cambios
+      setTimeout(() => loadSharedPhotos(true), 1000);
+      
     } catch (error) {
       console.error('Error deleting photo:', error);
+      setError(`Error eliminando foto: ${error.message}`);
+      // Recargar fotos para restaurar estado consistente
       loadSharedPhotos();
     }
   };
@@ -149,6 +210,8 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
   };
 
   const handleRefresh = () => {
+    console.log('Refresh manual solicitado');
+    setRetryCount(0);
     loadSharedPhotos();
   };
 
@@ -159,6 +222,11 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
           <h3 className="text-2xl font-bold text-gray-800">Cargando fotos con comentarios...</h3>
           <p className="text-gray-600">Sincronizando desde JSONBin...</p>
+          {retryCount > 0 && (
+            <p className="text-sm text-orange-600">
+              Reintento {retryCount}/{MAX_RETRIES}...
+            </p>
+          )}
         </div>
       </div>
     );
@@ -208,6 +276,13 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
             Última sincronización: {lastRefresh}
           </p>
         )}
+        
+        {/* Debug info (solo en desarrollo) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 text-xs text-gray-400 bg-gray-50 p-2 rounded">
+            Debug: BinID={JSONBIN_BIN_ID} | Fotos locales: {newPhotos.length} | Reintentos: {retryCount}
+          </div>
+        )}
       </div>
 
       {/* Mensaje cuando no hay fotos */}
@@ -235,7 +310,7 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
         <div className="max-w-2xl mx-auto space-y-6">
           {photos.map((photo, index) => (
             <div
-              key={`${photo.uploadedAt}-${index}`}
+              key={`${photo.url}-${index}`} // Usar URL como parte de la key para evitar duplicados
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300"
             >
               {/* Header de la foto */}
@@ -264,6 +339,7 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
                   className="w-full h-auto max-h-96 object-cover hover:opacity-95 transition-opacity"
                   loading="lazy"
                   onError={(e) => {
+                    console.error('Error cargando imagen:', photo.url);
                     const img = e.target as HTMLImageElement;
                     img.style.display = 'none';
                     const parent = img.parentElement;

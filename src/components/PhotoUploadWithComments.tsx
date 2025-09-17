@@ -29,9 +29,9 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
   // ImgBB API Key
   const IMGBB_API_KEY = 'c76cf58613a488c3b14fee596a71898a';
   
-  // JSONBin configuración - Nuevo bin para fotos con comentarios
+  // JSONBin configuración - Bin para fotos con comentarios
   const JSONBIN_API_KEY = '$2a$10$Nuf7k67YFnYpULzk22ylr.0qsAVr8rYiCFithtpvz6xM/6m7yC.cK';
-  const JSONBIN_BIN_ID = '68caf72b43b1c97be9465daf'; // Diferente bin para fotos con comentarios
+  const JSONBIN_BIN_ID = '68caf72b43b1c97be9465daf';
 
   const handlePasswordSubmit = () => {
     if (password === UPLOAD_PASSWORD) {
@@ -77,90 +77,133 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
     setComments(newComments);
   };
 
-  // Subir imagen a ImgBB
-  const uploadToImgBB = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('image', file);
+  // Subir imagen a ImgBB con reintentos
+  const uploadToImgBB = async (file: File, retries = 3): Promise<string> => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`Subiendo ${file.name} a ImgBB (intento ${attempt}/${retries})`);
+        
+        const formData = new FormData();
+        formData.append('image', file);
 
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-      method: 'POST',
-      body: formData,
-    });
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+          method: 'POST',
+          body: formData,
+        });
 
-    if (!response.ok) {
-      throw new Error(`ImgBB upload failed: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`ImgBB upload failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error('ImgBB upload failed: ' + (data.error?.message || 'Unknown error'));
+        }
+
+        console.log('Foto subida exitosamente a ImgBB:', data.data.url);
+        return data.data.url;
+        
+      } catch (error) {
+        console.error(`Error en intento ${attempt}:`, error);
+        
+        if (attempt === retries) {
+          throw new Error(`Error subiendo después de ${retries} intentos: ${error.message}`);
+        }
+        
+        // Esperar antes del siguiente intento
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
     }
-
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error('ImgBB upload failed');
-    }
-
-    return data.data.url;
+    
+    throw new Error('Error inesperado en uploadToImgBB');
   };
 
   // Obtener fotos existentes de JSONBin
-  const getExistingPhotos = async () => {
+  const getExistingPhotos = async (): Promise<PhotoWithComment[]> => {
     try {
+      console.log('Obteniendo fotos existentes de JSONBin...');
+      
       const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
         method: 'GET',
         headers: {
           'X-Master-Key': JSONBIN_API_KEY,
+          'Cache-Control': 'no-cache'
         },
       });
 
       if (response.ok) {
         const data = await response.json();
-        return data.record?.photos || [];
+        const existingPhotos = data.record?.photos || [];
+        console.log('Fotos existentes encontradas:', existingPhotos.length);
+        return existingPhotos;
       } else if (response.status === 404) {
+        console.log('Bin no encontrado, será creado');
         return [];
       } else {
-        console.error('Error response:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error obteniendo fotos existentes:', response.status, errorText);
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error obteniendo fotos existentes:', error);
-      return [];
+      console.error('Error en getExistingPhotos:', error);
+      return []; // Retornar array vacío en caso de error
     }
   };
 
   // Crear o actualizar el bin en JSONBin
-  const savePhotosToJsonBin = async (allPhotos: PhotoWithComment[]) => {
+  const savePhotosToJsonBin = async (allPhotos: PhotoWithComment[], isUpdate = false) => {
     try {
-      let response = await fetch(`https://api.jsonbin.io/v3/b`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': JSONBIN_API_KEY,
-          'X-Bin-Name': 'photos-with-comments',
-        },
-        body: JSON.stringify({
-          photos: allPhotos,
-          lastUpdated: new Date().toISOString()
-        }),
-      });
+      console.log(`${isUpdate ? 'Actualizando' : 'Creando'} bin con ${allPhotos.length} fotos...`);
+      
+      const payload = {
+        photos: allPhotos,
+        lastUpdated: new Date().toISOString(),
+        totalPhotos: allPhotos.length
+      };
 
-      if (response.status === 409 || !response.ok) {
+      let response;
+      
+      if (isUpdate) {
+        // Intentar actualizar primero
         response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'X-Master-Key': JSONBIN_API_KEY,
           },
-          body: JSON.stringify({
-            photos: allPhotos,
-            lastUpdated: new Date().toISOString()
-          }),
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Intentar crear nuevo bin
+        response = await fetch(`https://api.jsonbin.io/v3/b`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': JSONBIN_API_KEY,
+            'X-Bin-Name': 'photos-with-comments-gallery',
+            'X-Bin-Private': 'false'
+          },
+          body: JSON.stringify(payload),
         });
       }
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('JSONBin error:', response.status, errorText);
-        throw new Error(`Error guardando: ${response.status} ${response.statusText}`);
+        console.error('Error en savePhotosToJsonBin:', response.status, errorText);
+        
+        // Si falla la creación, intentar actualización
+        if (!isUpdate && response.status === 409) {
+          console.log('Bin ya existe, intentando actualizar...');
+          return await savePhotosToJsonBin(allPhotos, true);
+        }
+        
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Guardado exitoso en JSONBin:', result);
+      return result;
+      
     } catch (error) {
       console.error('Error en savePhotosToJsonBin:', error);
       throw error;
@@ -178,8 +221,8 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
     }
     
     // Validar configuración
-    if (IMGBB_API_KEY.includes('REEMPLAZA')) {
-      setError('Debes configurar IMGBB_API_KEY en el código');
+    if (!IMGBB_API_KEY || IMGBB_API_KEY.includes('REEMPLAZA')) {
+      setError('Error de configuración: ImgBB API Key no válida');
       return;
     }
     
@@ -187,41 +230,74 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
     setError('');
     
     try {
+      console.log('Iniciando subida de', selectedFiles.length, 'fotos...');
+      
       // Subir archivos a ImgBB
       const uploadedPhotos: PhotoWithComment[] = [];
       
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        setUploadProgress(prev => ({ ...prev, [i]: 25 }));
+        console.log(`Procesando archivo ${i + 1}/${selectedFiles.length}: ${file.name}`);
         
-        // Subir a ImgBB
-        const imageUrl = await uploadToImgBB(file);
-        setUploadProgress(prev => ({ ...prev, [i]: 75 }));
+        setUploadProgress(prev => ({ ...prev, [i]: 10 }));
         
-        uploadedPhotos.push({
-          url: imageUrl,
-          title: file.name,
-          comment: comments[i],
-          uploadedAt: new Date().toISOString()
-        });
-        
-        setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+        try {
+          // Subir a ImgBB
+          const imageUrl = await uploadToImgBB(file);
+          setUploadProgress(prev => ({ ...prev, [i]: 80 }));
+          
+          const photoWithComment: PhotoWithComment = {
+            url: imageUrl,
+            title: file.name,
+            comment: comments[i].trim(),
+            uploadedAt: new Date().toISOString()
+          };
+          
+          uploadedPhotos.push(photoWithComment);
+          setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+          
+          console.log(`Foto ${i + 1} subida exitosamente:`, photoWithComment);
+          
+        } catch (error) {
+          console.error(`Error subiendo foto ${i + 1}:`, error);
+          setError(`Error subiendo ${file.name}: ${error.message}`);
+          throw error;
+        }
       }
+      
+      console.log('Todas las fotos subidas a ImgBB exitosamente');
       
       // Obtener fotos existentes de JSONBin
       const existingPhotos = await getExistingPhotos();
+      console.log('Fotos existentes obtenidas:', existingPhotos.length);
       
       // Combinar fotos (evitar duplicados por URL)
       const allPhotos = [...existingPhotos];
+      let newPhotosAdded = 0;
+      
       uploadedPhotos.forEach(newPhoto => {
         const exists = allPhotos.some(existing => existing.url === newPhoto.url);
         if (!exists) {
           allPhotos.push(newPhoto);
+          newPhotosAdded++;
+        } else {
+          console.log('Foto duplicada detectada, omitiendo:', newPhoto.url);
         }
       });
       
+      console.log(`${newPhotosAdded} nuevas fotos agregadas. Total: ${allPhotos.length}`);
+      
+      // Ordenar por fecha más reciente primero
+      allPhotos.sort((a, b) => {
+        const dateA = new Date(a.uploadedAt).getTime();
+        const dateB = new Date(b.uploadedAt).getTime();
+        return dateB - dateA;
+      });
+      
       // Guardar en JSONBin
-      await savePhotosToJsonBin(allPhotos);
+      await savePhotosToJsonBin(allPhotos, existingPhotos.length > 0);
+      
+      console.log('Proceso completado exitosamente');
       
       // Notificar al componente padre
       onPhotosUploaded(uploadedPhotos);
@@ -244,6 +320,9 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
   };
 
   const closeModal = () => {
+    // Limpiar URLs de preview para evitar memory leaks
+    previews.forEach(preview => URL.revokeObjectURL(preview));
+    
     setShowModal(false);
     setIsAuthenticated(false);
     setPassword('');
@@ -428,6 +507,15 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
                   <p className="text-xs text-gray-500 text-center">
                     Fotos con comentarios → ImgBB → JSONBin → Sincronización automática
                   </p>
+                  
+                  {/* Debug info para desarrollo */}
+                  {process.env.NODE_ENV === 'development' && uploading && (
+                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                      <p>Debug info:</p>
+                      <p>BinID: {JSONBIN_BIN_ID}</p>
+                      <p>ImgBB configurado: {IMGBB_API_KEY ? 'Sí' : 'No'}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
