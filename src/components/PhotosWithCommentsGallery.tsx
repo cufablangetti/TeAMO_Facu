@@ -34,7 +34,7 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
         setError('');
       }
       
-      console.log('Cargando fotos desde JSONBin...', { binId: JSONBIN_BIN_ID, retry: retryCount });
+      console.log('🎯 Cargando fotos desde bin específico:', JSONBIN_BIN_ID);
       
       const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
         method: 'GET',
@@ -44,7 +44,11 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
         },
       });
 
-      console.log('Respuesta de JSONBin:', { status: response.status, ok: response.ok });
+      console.log('📡 Respuesta de JSONBin:', { 
+        status: response.status, 
+        ok: response.ok,
+        binId: JSONBIN_BIN_ID 
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -156,15 +160,16 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
 
   const handleDelete = async (photoUrl: string) => {
     try {
-      console.log('Eliminando foto:', photoUrl);
+      console.log('🗑️ Eliminando foto del bin específico:', JSONBIN_BIN_ID);
+      console.log('🔗 URL a eliminar:', photoUrl);
       
       const updatedPhotos = photos.filter(photo => photo.url !== photoUrl);
-      console.log('Fotos después de eliminar:', updatedPhotos.length);
+      console.log(`📊 Fotos después de eliminar: ${updatedPhotos.length} (era ${photos.length})`);
       
       // Actualizar estado local primero
       setPhotos(updatedPhotos);
       
-      // Actualizar en JSONBin
+      // Actualizar en JSONBin - SOLO el bin específico
       const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
         method: 'PUT',
         headers: {
@@ -173,17 +178,19 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
         },
         body: JSON.stringify({
           photos: updatedPhotos,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          totalPhotos: updatedPhotos.length
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error actualizando JSONBin:', response.status, errorText);
+        console.error('❌ Error actualizando bin después de eliminar:', response.status, errorText);
+        console.error('❌ BIN ID usado:', JSONBIN_BIN_ID);
         throw new Error(`Error updating: ${response.status}`);
       }
       
-      console.log('Foto eliminada exitosamente de JSONBin');
+      console.log('✅ Foto eliminada exitosamente del bin específico');
       setShowDeleteConfirm(null);
       
       if (selectedPhoto?.url === photoUrl) {
@@ -194,7 +201,7 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
       setTimeout(() => loadSharedPhotos(true), 1000);
       
     } catch (error) {
-      console.error('Error deleting photo:', error);
+      console.error('❌ Error deleting photo:', error);
       setError(`Error eliminando foto: ${error.message}`);
       // Recargar fotos para restaurar estado consistente
       loadSharedPhotos();
@@ -280,7 +287,9 @@ const PhotosWithCommentsGallery: React.FC<PhotosWithCommentsGalleryProps> = ({ n
         {/* Debug info (solo en desarrollo) */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-4 text-xs text-gray-400 bg-gray-50 p-2 rounded">
-            Debug: BinID={JSONBIN_BIN_ID} | Fotos locales: {newPhotos.length} | Reintentos: {retryCount}
+            🎯 Debug: BinID={JSONBIN_BIN_ID} | Fotos locales: {newPhotos.length} | Reintentos: {retryCount}
+            <br />
+            🔄 Este componente SOLO lee del bin específico (nunca crea bins nuevos)
           </div>
         )}
       </div>

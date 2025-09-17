@@ -150,10 +150,11 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
     }
   };
 
-  // Crear o actualizar el bin en JSONBin
-  const savePhotosToJsonBin = async (allPhotos: PhotoWithComment[], isUpdate = false) => {
+  // SOLO actualizar el bin específico - NO crear bins nuevos
+  const savePhotosToJsonBin = async (allPhotos: PhotoWithComment[]) => {
     try {
-      console.log(`${isUpdate ? 'Actualizando' : 'Creando'} bin con ${allPhotos.length} fotos...`);
+      console.log(`🎯 USANDO BIN ESPECÍFICO: ${JSONBIN_BIN_ID}`);
+      console.log(`Actualizando bin con ${allPhotos.length} fotos...`);
       
       const payload = {
         photos: allPhotos,
@@ -161,51 +162,30 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
         totalPhotos: allPhotos.length
       };
 
-      let response;
-      
-      if (isUpdate) {
-        // Intentar actualizar primero
-        response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Master-Key': JSONBIN_API_KEY,
-          },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        // Intentar crear nuevo bin
-        response = await fetch(`https://api.jsonbin.io/v3/b`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Master-Key': JSONBIN_API_KEY,
-            'X-Bin-Name': 'photos-with-comments-gallery',
-            'X-Bin-Private': 'false'
-          },
-          body: JSON.stringify(payload),
-        });
-      }
+      // SIEMPRE usar PUT para actualizar el bin específico - NUNCA crear uno nuevo
+      const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_API_KEY,
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error en savePhotosToJsonBin:', response.status, errorText);
-        
-        // Si falla la creación, intentar actualización
-        if (!isUpdate && response.status === 409) {
-          console.log('Bin ya existe, intentando actualizar...');
-          return await savePhotosToJsonBin(allPhotos, true);
-        }
-        
+        console.error('❌ Error actualizando bin específico:', response.status, errorText);
+        console.error('❌ BIN ID que estamos intentando usar:', JSONBIN_BIN_ID);
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('Guardado exitoso en JSONBin:', result);
+      console.log('✅ Bin específico actualizado exitosamente:', result);
+      console.log('✅ BIN ID confirmado:', result.record?.id || JSONBIN_BIN_ID);
       return result;
       
     } catch (error) {
-      console.error('Error en savePhotosToJsonBin:', error);
+      console.error('❌ Error en savePhotosToJsonBin:', error);
       throw error;
     }
   };
@@ -294,8 +274,8 @@ const PhotoUploadWithComments: React.FC<PhotoUploadWithCommentsProps> = ({ onPho
         return dateB - dateA;
       });
       
-      // Guardar en JSONBin
-      await savePhotosToJsonBin(allPhotos, existingPhotos.length > 0);
+      // Guardar en JSONBin - SOLO actualizar el bin específico
+      await savePhotosToJsonBin(allPhotos);
       
       console.log('Proceso completado exitosamente');
       
