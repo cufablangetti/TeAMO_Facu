@@ -75,7 +75,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
   return (
     <div className="screen-1 relative h-screen w-full overflow-hidden">
       {/* Contador regresivo fijo con diseño compacto */}
-      <div className="absolute left-1/2 transform -translate-x-1/2 top-3 z-20">
+      <div className="absolute left-1/2 transform -translate-x-1/2 top-[30%] md:top-6 z-20">
         <div className="relative">
           {/* Título animado más pequeño */}
           <div className="text-center mb-2">
@@ -161,8 +161,7 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
       </div>
 
       {/* Botón en forma de corazón */}
-      <div className="absolute right-4 top-4 z-20 flex items-center">
-        <span className="mr-2 text-white text-sm">Toca para ver el mensaje del mes</span>
+      <div className="absolute right-4 top-4 z-20 flex flex-col items-center">
         <button
           onClick={() => setShowMessage(!showMessage)}
           className="bg-pink-500 hover:bg-pink-600 text-white p-3 rounded-full transition-all duration-300 transform hover:scale-110 relative"
@@ -174,6 +173,9 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
             !
           </div>
         </button>
+        <span className="mt-2 text-white text-xs text-center max-w-[60px] leading-tight drop-shadow-md">
+          Toca para ver el mensaje del mes
+        </span>
       </div>
 
       {/* Mensaje del mes */}
