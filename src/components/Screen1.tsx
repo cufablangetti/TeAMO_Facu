@@ -17,13 +17,12 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
     minutes: 0,
     seconds: 0
   });
-  const [isHoveringCounter, setIsHoveringCounter] = useState(false);
   const [showMessage, setShowMessage] = useState(false); // Estado para controlar la visibilidad del mensaje
 
-  // Fecha de viaje a Corea (1 de septiembre 2025)
-  const targetDate = new Date(2025, 11, 27).getTime();
-
   useEffect(() => {
+    // Fecha de viaje a Corea (27 de diciembre 2025)
+    const targetDate = new Date(2025, 11, 27).getTime();
+
     const updateCountdown = () => {
       const now = new Date().getTime();
       const difference = targetDate - now;
@@ -75,56 +74,87 @@ const Screen1: React.FC<Screen1Props> = ({ onNavigate }) => {
 
   return (
     <div className="screen-1 relative h-screen w-full overflow-hidden">
-      {/* Contador regresivo vertical interactivo - Posicionado en la esquina superior izquierda */}
-      <div
-        className={`absolute left-4 top-4 transform z-20 transition-all duration-300 ${
-          isHoveringCounter ? 'translate-x-0' : '-translate-x-3/4 hover:translate-x-0'
-        }`}
-        onMouseEnter={() => setIsHoveringCounter(true)}
-        onMouseLeave={() => setIsHoveringCounter(false)}
-      >
-        <div className={`bg-pink-600 bg-opacity-90 text-white rounded-r-xl shadow-2xl p-2 transition-all duration-500 ${
-          isHoveringCounter ? 'w-40' : 'w-16'
-        }`}>
-          <h2 className={`text-center font-bold mb-2 transition-opacity duration-200 ${
-            isHoveringCounter ? 'opacity-100' : 'opacity-0'
-          }`}>PARA VOLVERNOS A VER</h2>
+      {/* Contador regresivo fijo con diseño compacto */}
+      <div className="absolute left-1/2 transform -translate-x-1/2 top-3 z-20">
+        <div className="relative">
+          {/* Título animado más pequeño */}
+          <div className="text-center mb-2">
+            <h2 className="text-white text-base md:text-lg font-bold drop-shadow-lg animate-pulse">
+              ✨ ¡Ya queda poco! ✨
+            </h2>
+          </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
-                isHoveringCounter ? 'mr-2' : 'mx-auto'
-              }`}>
-                <div className="text-xl font-bold">{timeRemaining.days}</div>
+          {/* Contador principal compacto */}
+          <div className="bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl shadow-2xl p-2 md:p-3 backdrop-blur-sm border-2 border-white/30">
+            <div className="flex gap-1 md:gap-2 justify-center items-center">
+              {/* Días */}
+              <div className="relative group">
+                <div className="bg-white/20 backdrop-blur-md rounded-lg p-1.5 md:p-2 min-w-[45px] md:min-w-[55px] transform transition-all duration-300 hover:scale-110 border border-white/40 shadow-lg">
+                  <div className="text-xl md:text-2xl font-bold text-white drop-shadow-lg animate-bounce">
+                    {timeRemaining.days}
+                  </div>
+                  <div className="text-[9px] md:text-xs text-pink-100 font-semibold uppercase tracking-wider">
+                    Días
+                  </div>
+                </div>
+                {/* Efecto de brillo */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer rounded-lg"></div>
               </div>
-              {isHoveringCounter && <span className="text-xs">Días</span>}
+
+              {/* Separador */}
+              <span className="text-white text-xl md:text-2xl font-bold animate-pulse">:</span>
+
+              {/* Horas */}
+              <div className="relative group">
+                <div className="bg-white/20 backdrop-blur-md rounded-lg p-1.5 md:p-2 min-w-[45px] md:min-w-[55px] transform transition-all duration-300 hover:scale-110 border border-white/40 shadow-lg">
+                  <div className="text-xl md:text-2xl font-bold text-white drop-shadow-lg">
+                    {timeRemaining.hours.toString().padStart(2, '0')}
+                  </div>
+                  <div className="text-[9px] md:text-xs text-pink-100 font-semibold uppercase tracking-wider">
+                    Hrs
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer rounded-lg" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+
+              {/* Separador */}
+              <span className="text-white text-xl md:text-2xl font-bold animate-pulse">:</span>
+
+              {/* Minutos */}
+              <div className="relative group">
+                <div className="bg-white/20 backdrop-blur-md rounded-lg p-1.5 md:p-2 min-w-[45px] md:min-w-[55px] transform transition-all duration-300 hover:scale-110 border border-white/40 shadow-lg">
+                  <div className="text-xl md:text-2xl font-bold text-white drop-shadow-lg">
+                    {timeRemaining.minutes.toString().padStart(2, '0')}
+                  </div>
+                  <div className="text-[9px] md:text-xs text-pink-100 font-semibold uppercase tracking-wider">
+                    Min
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer rounded-lg" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+
+              {/* Separador */}
+              <span className="text-white text-xl md:text-2xl font-bold animate-pulse">:</span>
+
+              {/* Segundos */}
+              <div className="relative group">
+                <div className="bg-white/20 backdrop-blur-md rounded-lg p-1.5 md:p-2 min-w-[45px] md:min-w-[55px] transform transition-all duration-300 hover:scale-110 border border-white/40 shadow-lg">
+                  <div className="text-xl md:text-2xl font-bold text-white drop-shadow-lg">
+                    {timeRemaining.seconds.toString().padStart(2, '0')}
+                  </div>
+                  <div className="text-[9px] md:text-xs text-pink-100 font-semibold uppercase tracking-wider">
+                    Seg
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer rounded-lg" style={{ animationDelay: '0.6s' }}></div>
+              </div>
             </div>
 
-            <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
-                isHoveringCounter ? 'mr-2' : 'mx-auto'
-              }`}>
-                <div className="text-xl font-bold">{timeRemaining.hours.toString().padStart(2, '0')}</div>
-              </div>
-              {isHoveringCounter && <span className="text-xs">Horas</span>}
-            </div>
-
-            <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
-                isHoveringCounter ? 'mr-2' : 'mx-auto'
-              }`}>
-                <div className="text-xl font-bold">{timeRemaining.minutes.toString().padStart(2, '0')}</div>
-              </div>
-              {isHoveringCounter && <span className="text-xs">Minutos</span>}
-            </div>
-
-            <div className="flex items-center">
-              <div className={`bg-white bg-opacity-20 rounded-lg p-1 min-w-10 text-center transition-all duration-300 ${
-                isHoveringCounter ? 'mr-2' : 'mx-auto'
-              }`}>
-                <div className="text-xl font-bold">{timeRemaining.seconds.toString().padStart(2, '0')}</div>
-              </div>
-              {isHoveringCounter && <span className="text-xs">Segundos</span>}
+            {/* Corazones decorativos más pequeños */}
+            <div className="flex justify-center gap-1 mt-1">
+              <Heart className="text-pink-200 animate-pulse" size={10} fill="currentColor" />
+              <Heart className="text-pink-200 animate-pulse" size={12} fill="currentColor" style={{ animationDelay: '0.2s' }} />
+              <Heart className="text-pink-200 animate-pulse" size={10} fill="currentColor" style={{ animationDelay: '0.4s' }} />
             </div>
           </div>
         </div>

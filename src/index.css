@@ -24,9 +24,22 @@
   50% { opacity: 0; }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Custom classes */
 .animate-fade-in {
   animation: fadeIn 1s ease forwards;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s infinite;
 }
 
 .animate-float-up {
